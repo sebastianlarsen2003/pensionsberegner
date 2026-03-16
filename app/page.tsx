@@ -1,7 +1,103 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+} from "chart.js"
+import { Line } from "react-chartjs-2"
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+)
+
+type PensionChartProps = {
+  currentSavings: number
+  futureValue: number
+  yearsToRetirement: number
+}
+
+function PensionChart({
+  currentSavings,
+  futureValue,
+  yearsToRetirement,
+}: PensionChartProps) {
+  const step1 = Math.max(1, Math.round(yearsToRetirement / 3))
+  const step2 = Math.max(2, Math.round((yearsToRetirement / 3) * 2))
+
+  const estimateAtPoint = (year: number) => {
+    if (yearsToRetirement <= 0) return currentSavings
+    const ratio = year / yearsToRetirement
+    return Math.round(currentSavings + (futureValue - currentSavings) * ratio)
+  }
+
+  const data = {
+    labels: ["I dag", `Om ${step1} år`, `Om ${step2} år`, "Ved pension"],
+    datasets: [
+      {
+        label: "Opsparing",
+        data: [
+          currentSavings,
+          estimateAtPoint(step1),
+          estimateAtPoint(step2),
+          futureValue,
+        ],
+        borderColor: "#0f172a",
+        backgroundColor: "rgba(15, 23, 42, 0.08)",
+        borderWidth: 3,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 5,
+        fill: false,
+      },
+    ],
+  }
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            return `${context.dataset.label}: ${Number(
+              context.parsed.y
+            ).toLocaleString("da-DK")} kr.`
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: function (value: any) {
+            return `${Number(value).toLocaleString("da-DK")} kr.`
+          },
+        },
+      },
+    },
+  }
+
+  return (
+    <div className="h-[320px] w-full">
+      <Line data={data} options={options} />
+    </div>
+  )
+}
 
 export default function Home() {
   const [age, setAge] = useState("")
@@ -14,6 +110,8 @@ export default function Home() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [leadSubmitted, setLeadSubmitted] = useState(false)
+
+  const resultRef = useRef<HTMLElement>(null)
 
   const result = useMemo(() => {
     const currentAge = Number(age)
@@ -66,6 +164,19 @@ export default function Home() {
       ratingBadge = "Ser stærkt ud"
     }
 
+    let teaserText = ""
+
+    if (rating === "Lavt niveau") {
+      teaserText =
+        "Din beregning tyder umiddelbart på, at din pensionsopsparing kan være i den lave ende i forhold til den tid, der er tilbage til pension. Der kan være muligheder for at styrke dit fremtidige niveau afhængigt af din samlede økonomi."
+    } else if (rating === "Fornuftigt udgangspunkt") {
+      teaserText =
+        "Din beregning viser et fornuftigt udgangspunkt. Samtidig kan der stadig være optimeringsmuligheder afhængigt af indbetalinger, investeringsprofil og den samlede pensionsstruktur."
+    } else {
+      teaserText =
+        "Din opsparing ser umiddelbart stærk ud i forhold til tidshorisonten. Selv i en god situation kan det dog være relevant at få vurderet, om sammensætningen af din pension matcher dine ønsker til fremtiden."
+    }
+
     return {
       yearsToRetirement,
       futureValue: Math.round(futureValue),
@@ -73,11 +184,19 @@ export default function Home() {
       rating,
       ratingText,
       ratingBadge,
+      teaserText,
     }
   }, [age, retirementAge, currentSavings, monthlyContribution])
 
   const handleCalculate = () => {
     setHasCalculated(true)
+
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    }, 150)
   }
 
   const handleLeadSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -102,16 +221,21 @@ export default function Home() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
+          <a
+            href="https://raadgiverxperten.dk"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3"
+          >
             <Image
               src="/logo.svg"
               alt="RådgiverXperten"
               width={230}
               height={60}
               priority
-              className="h-auto w-[180px] md:w-[230px]"
+              className="h-auto w-[180px] cursor-pointer md:w-[230px]"
             />
-          </div>
+          </a>
 
           <div className="hidden items-center gap-3 md:flex">
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 shadow-sm">
@@ -251,15 +375,18 @@ export default function Home() {
                 </button>
 
                 <p className="text-xs leading-5 text-slate-500">
-                  Dette er et vejledende estimat og bør ikke stå alene ved
-                  større økonomiske beslutninger.
+                  Dette er et vejledende estimat før skat og bør ikke stå alene
+                  ved større økonomiske beslutninger.
                 </p>
               </div>
             </div>
           </div>
 
           {hasCalculated && (
-            <section className="mt-14 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_70px_rgba(15,23,42,0.06)] md:p-8">
+            <section
+              ref={resultRef}
+              className="mt-14 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_70px_rgba(15,23,42,0.06)] md:p-8"
+            >
               {!result ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
                   <h2 className="text-2xl font-bold text-slate-950">
@@ -307,11 +434,47 @@ export default function Home() {
 
                     <div className="rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-200">
                       <p className="text-sm text-slate-500">
-                        Estimeret månedligt beløb
+                        Estimeret månedlig udbetaling fra opsparing
                       </p>
                       <p className="mt-3 text-4xl font-bold text-slate-950">
                         {result.estimatedMonthlyPension.toLocaleString("da-DK")}{" "}
                         kr.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6">
+                    <h3 className="mb-4 text-xl font-bold text-slate-900">
+                      Udvikling i din opsparing
+                    </h3>
+
+                    <p className="mb-6 text-slate-600">
+                      Grafen viser et vejledende estimat af hvordan din
+                      pensionsopsparing kan udvikle sig frem mod pension.
+                    </p>
+
+                    <PensionChart
+                      currentSavings={Number(currentSavings)}
+                      futureValue={result.futureValue}
+                      yearsToRetirement={result.yearsToRetirement}
+                    />
+
+                    <div className="mt-8 rounded-2xl bg-slate-50 p-6">
+                      <h3 className="mb-2 text-lg font-bold text-slate-900">
+                        Kort vurdering
+                      </h3>
+
+                      <p className="leading-7 text-slate-700">
+                        Din beregning viser en estimeret månedlig udbetaling fra
+                        opsparing på{" "}
+                        <strong>
+                          {result.estimatedMonthlyPension.toLocaleString("da-DK")}{" "}
+                          kr.
+                        </strong>
+                        . Med {result.yearsToRetirement} år til pension har du
+                        stadig tid til at påvirke udviklingen i din opsparing.
+                        Små ændringer i indbetaling eller investeringsprofil kan
+                        over tid have betydning.
                       </p>
                     </div>
                   </div>
@@ -326,6 +489,10 @@ export default function Home() {
                       </h3>
                       <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
                         {result.ratingText}
+                      </p>
+
+                      <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+                        {result.teaserText}
                       </p>
 
                       <div className="mt-6 grid gap-3 sm:grid-cols-3">
