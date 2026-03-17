@@ -39,13 +39,6 @@ const BRAND = {
   navy: "#253457",
   cyan: "#4FB7E7",
   slate: "#8D95A6",
-  ink: "#172033",
-  bg: "#F4F7FB",
-  line: "rgba(37, 52, 87, 0.12)",
-  lineSoft: "rgba(37, 52, 87, 0.08)",
-  cyanSoft: "rgba(79, 183, 231, 0.16)",
-  navySoft: "rgba(37, 52, 87, 0.10)",
-  slateSoft: "rgba(141, 149, 166, 0.12)",
 }
 
 function cn(...classes: (string | false | null | undefined)[]) {
@@ -68,7 +61,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-[28px] border p-6 shadow-[0_12px_40px_rgba(23,32,51,0.06)]",
+        "rounded-[24px] border p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] md:rounded-[28px] md:p-6",
         tone === "primary" &&
           "border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] text-white",
         tone === "accent" &&
@@ -84,7 +77,7 @@ function StatCard({
       >
         {label}
       </p>
-      <p className="mt-3 text-3xl font-bold leading-tight md:text-4xl">
+      <p className="mt-3 text-2xl font-bold leading-tight md:text-4xl">
         {value}
       </p>
     </div>
@@ -99,7 +92,7 @@ function InsightCard({
   text: string
 }) {
   return (
-    <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 shadow-sm">
+    <div className="rounded-[20px] border border-[#253457]/10 bg-white p-4 shadow-sm md:rounded-[24px] md:p-5">
       <p className="text-sm font-semibold text-[#253457]">{title}</p>
       <p className="mt-2 text-sm leading-6 text-[#5F6D84]">{text}</p>
     </div>
@@ -125,7 +118,7 @@ function InputField({
       <input
         type="number"
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-4 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15"
+        className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-3.5 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15 md:py-4"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -168,7 +161,7 @@ function PensionChart({ points }: PensionChartProps) {
         backgroundColor: "transparent",
         borderWidth: 3,
         tension: 0.38,
-        pointRadius: 3,
+        pointRadius: 2,
         pointHoverRadius: 5,
         pointBackgroundColor: BRAND.navy,
         fill: false,
@@ -188,12 +181,12 @@ function PensionChart({ points }: PensionChartProps) {
       legend: {
         display: true,
         labels: {
-          boxWidth: 14,
+          boxWidth: 12,
           color: BRAND.navy,
           usePointStyle: true,
-          pointStyle: "circle",
+          pointStyle: "circle" as const,
           font: {
-            size: 12,
+            size: 11,
           },
         },
       },
@@ -227,6 +220,11 @@ function PensionChart({ points }: PensionChartProps) {
         },
         ticks: {
           color: BRAND.slate,
+          maxRotation: 0,
+          autoSkip: false,
+          font: {
+            size: 11,
+          },
         },
       },
       y: {
@@ -237,6 +235,9 @@ function PensionChart({ points }: PensionChartProps) {
         },
         ticks: {
           color: BRAND.slate,
+          font: {
+            size: 11,
+          },
           callback: function (value: any) {
             return `${Number(value).toLocaleString("da-DK")} kr.`
           },
@@ -246,7 +247,7 @@ function PensionChart({ points }: PensionChartProps) {
   }
 
   return (
-    <div className="h-[260px] w-full md:h-[300px]">
+    <div className="h-[220px] w-full md:h-[300px]">
       <Line data={data} options={options} />
     </div>
   )
@@ -430,7 +431,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#253457]">
       <header className="sticky top-0 z-40 border-b border-[#253457]/8 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <a
             href="https://raadgiverxperten.dk"
             target="_blank"
@@ -443,7 +444,7 @@ export default function Home() {
               width={230}
               height={60}
               priority
-              className="h-auto w-[180px] md:w-[230px]"
+              className="h-auto w-[160px] md:w-[220px]"
             />
           </a>
 
@@ -467,66 +468,63 @@ export default function Home() {
         <div className="absolute left-[-120px] top-24 h-72 w-72 rounded-full bg-[#4FB7E7]/10 blur-3xl" />
         <div className="absolute right-[-100px] top-14 h-72 w-72 rounded-full bg-[#253457]/10 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-6 pb-14 pt-12 md:pb-20 md:pt-20">
-          <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-            <div className="max-w-2xl pt-2 md:pt-8">
+        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 md:px-6 md:pb-20 md:pt-20">
+          <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+            <div className="max-w-xl pt-2 md:max-w-2xl md:pt-8">
               <div className="inline-flex items-center rounded-full border border-[#4FB7E7]/25 bg-white/80 px-4 py-2 text-sm font-semibold text-[#253457] shadow-sm backdrop-blur">
                 Klarhed før beslutning
               </div>
 
-              <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-[#253457] md:text-6xl">
-                Få et elegant og hurtigt overblik over din pension
+              <h1 className="mt-6 text-3xl font-bold leading-tight tracking-tight text-[#253457] md:text-5xl lg:text-6xl">
+                Få et hurtigt overblik over din pension
               </h1>
 
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[#5F6D84]">
+              <p className="mt-5 max-w-xl text-base leading-7 text-[#5F6D84] md:text-lg md:leading-8">
                 Beregn et vejledende estimat af, hvordan din opsparing kan
                 udvikle sig frem mod pension, og få en første indikation af, om
                 der kan være områder, der er værd at kigge nærmere på.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-2.5 md:mt-8 md:gap-3">
                 {[
-                  "Vejledende estimat på få sekunder",
-                  "Designet til et første overblik",
-                  "Ingen binding eller forpligtelse",
+                  "Vejledende estimat",
+                  "Første overblik",
+                  "Ingen binding",
                 ].map((item) => (
                   <div
                     key={item}
-                    className="rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 text-sm text-[#5F6D84] shadow-sm backdrop-blur"
+                    className="rounded-full border border-[#253457]/10 bg-white/80 px-3.5 py-2 text-sm text-[#5F6D84] shadow-sm backdrop-blur md:px-4"
                   >
                     {item}
                   </div>
                 ))}
               </div>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-[24px] border border-[#253457]/10 bg-white/85 p-5 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur">
+              <div className="mt-8 grid gap-3 sm:grid-cols-3 md:mt-10 md:gap-4">
+                <div className="rounded-[20px] border border-[#253457]/10 bg-white/85 p-4 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
                     Hurtigt overblik
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#5F6D84]">
-                    Få et klart første estimat uden at skulle igennem en tung
-                    proces.
+                    Få et klart første estimat uden en tung proces.
                   </p>
                 </div>
 
-                <div className="rounded-[24px] border border-[#253457]/10 bg-white/85 p-5 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur">
+                <div className="rounded-[20px] border border-[#253457]/10 bg-white/85 p-4 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
                     Foreløbig vurdering
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#5F6D84]">
-                    Se om der kan være optimeringspotentiale i din nuværende
-                    situation.
+                    Se om der kan være optimeringspotentiale.
                   </p>
                 </div>
 
-                <div className="rounded-[24px] border border-[#253457]/10 bg-white/85 p-5 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur">
+                <div className="rounded-[20px] border border-[#253457]/10 bg-white/85 p-4 shadow-[0_12px_34px_rgba(23,32,51,0.05)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
                     Tryg oplevelse
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#5F6D84]">
-                    Et roligt, enkelt og professionelt værktøj til første
-                    afklaring.
+                    Et enkelt og professionelt værktøj til første afklaring.
                   </p>
                 </div>
               </div>
@@ -534,32 +532,21 @@ export default function Home() {
 
             <div className="relative">
               <div className="absolute -inset-3 rounded-[34px] bg-gradient-to-br from-[#4FB7E7]/18 via-white to-[#253457]/10 blur-2xl" />
-              <div className="relative rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_80px_rgba(23,32,51,0.12)] backdrop-blur md:p-8">
-                <div className="mb-6 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
-                      Gratis pensionscheck
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-3xl">
-                      Beregn dit estimat
-                    </h2>
-                    <p className="mt-3 max-w-md text-sm leading-6 text-[#5F6D84]">
-                      Indtast dine oplysninger og få et hurtigt, vejledende
-                      overblik over din pension og mulige næste skridt.
-                    </p>
-                  </div>
-
-                  <div className="hidden rounded-2xl border border-[#4FB7E7]/20 bg-[#EFF8FD] px-4 py-3 text-right sm:block">
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#8D95A6]">
-                      Estimat
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-[#253457]">
-                      Ca. 1 minut
-                    </p>
-                  </div>
+              <div className="relative rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_24px_80px_rgba(23,32,51,0.12)] backdrop-blur md:rounded-[30px] md:p-8">
+                <div className="mb-5 md:mb-6">
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
+                    Gratis pensionscheck
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-3xl">
+                    Beregn dit estimat
+                  </h2>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-[#5F6D84]">
+                    Indtast dine oplysninger og få et hurtigt, vejledende
+                    overblik over din pension og mulige næste skridt.
+                  </p>
                 </div>
 
-                <div className="grid gap-5">
+                <div className="grid gap-4 md:gap-5">
                   <InputField
                     label="Din alder"
                     value={age}
@@ -590,7 +577,7 @@ export default function Home() {
 
                   <button
                     onClick={handleCalculate}
-                    className="mt-2 rounded-2xl bg-[#253457] px-5 py-4 text-base font-semibold text-white shadow-[0_18px_40px_rgba(37,52,87,0.25)] transition hover:-translate-y-0.5 hover:bg-[#1F2C49]"
+                    className="mt-1 rounded-2xl bg-[#253457] px-5 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(37,52,87,0.25)] transition hover:-translate-y-0.5 hover:bg-[#1F2C49] md:py-4"
                   >
                     Se mit estimat
                   </button>
@@ -607,13 +594,10 @@ export default function Home() {
           </div>
 
           {hasCalculated && (
-            <section
-              ref={resultRef}
-              className="mt-12 md:mt-16"
-            >
+            <section ref={resultRef} className="mt-10 md:mt-16">
               {!result ? (
-                <div className="rounded-[30px] border border-amber-200 bg-white p-6 shadow-[0_16px_50px_rgba(23,32,51,0.06)] md:p-8">
-                  <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-6">
+                <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-[0_16px_50px_rgba(23,32,51,0.06)] md:rounded-[30px] md:p-8">
+                  <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-5 md:rounded-[24px] md:p-6">
                     <h2 className="text-2xl font-bold text-[#253457]">
                       Udfyld felterne korrekt
                     </h2>
@@ -625,28 +609,28 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[34px] border border-[#253457]/10 bg-white p-6 shadow-[0_24px_80px_rgba(23,32,51,0.08)] md:p-8">
-                  <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div className="rounded-[28px] border border-[#253457]/10 bg-white p-4 shadow-[0_24px_80px_rgba(23,32,51,0.08)] md:rounded-[34px] md:p-8">
+                  <div className="flex flex-col gap-4 md:gap-5 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
                         Dit foreløbige overblik
                       </p>
-                      <h2 className="mt-2 text-3xl font-bold text-[#253457] md:text-5xl">
+                      <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-4xl lg:text-5xl">
                         Her er dit pensionsestimat
                       </h2>
-                      <p className="mt-3 max-w-3xl text-base leading-7 text-[#5F6D84]">
+                      <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5F6D84] md:text-base md:leading-7">
                         Resultatet giver dig en første pejling på, hvordan din
                         opsparing kan udvikle sig, og om der kan være forhold,
                         der er værd at få vurderet nærmere.
                       </p>
                     </div>
 
-                    <div className="inline-flex w-fit items-center rounded-full border border-[#4FB7E7]/20 bg-[#EFF8FD] px-5 py-2 text-sm font-semibold text-[#253457]">
+                    <div className="inline-flex w-fit items-center rounded-full border border-[#4FB7E7]/20 bg-[#EFF8FD] px-4 py-2 text-sm font-semibold text-[#253457]">
                       {result.ratingBadge}
                     </div>
                   </div>
 
-                  <div className="mt-8 grid gap-5 md:grid-cols-3">
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2 md:mt-8 md:grid-cols-3 md:gap-5">
                     <StatCard
                       label="År til pension"
                       value={result.yearsToRetirement}
@@ -664,13 +648,13 @@ export default function Home() {
                     />
                   </div>
 
-                  <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div className="rounded-[30px] border border-[#253457]/10 bg-white p-5 shadow-sm md:p-6">
-                      <div className="mb-5">
-                        <h3 className="text-xl font-bold text-[#253457] md:text-2xl">
+                  <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr] md:mt-8 md:gap-6">
+                    <div className="rounded-[24px] border border-[#253457]/10 bg-white p-4 shadow-sm md:rounded-[30px] md:p-6">
+                      <div className="mb-4 md:mb-5">
+                        <h3 className="text-lg font-bold text-[#253457] md:text-2xl">
                           Udvikling i din opsparing
                         </h3>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#5F6D84] md:text-base">
+                        <p className="mt-2 text-sm leading-6 text-[#5F6D84] md:text-base">
                           Her kan du se, hvor meget der forventeligt kommer fra
                           dine egne indbetalinger, hvor meget der kan komme fra
                           afkast, og hvordan det tilsammen kan udvikle sig frem
@@ -678,79 +662,79 @@ export default function Home() {
                         </p>
                       </div>
 
-                      <div className="rounded-[26px] border border-[#253457]/8 bg-[#F8FBFE] p-4 md:p-5">
+                      <div className="rounded-2xl border border-[#253457]/8 bg-[#F8FBFE] p-3 md:rounded-[26px] md:p-5">
                         <PensionChart points={result.chartPoints} />
                       </div>
 
-                      <div className="mt-5 grid gap-4 md:grid-cols-3">
-                        <div className="rounded-[22px] border border-[#253457]/8 bg-[#F8FAFD] p-5">
+                      <div className="mt-4 grid gap-3 md:mt-5 md:grid-cols-3 md:gap-4">
+                        <div className="rounded-[20px] border border-[#253457]/8 bg-[#F8FAFD] p-4 md:rounded-[22px] md:p-5">
                           <p className="text-sm text-[#8D95A6]">
                             Samlet indbetalt
                           </p>
-                          <p className="mt-2 text-2xl font-bold text-[#253457]">
+                          <p className="mt-2 text-xl font-bold text-[#253457] md:text-2xl">
                             {formatCurrency(result.totalOwnContributions)}
                           </p>
                         </div>
 
-                        <div className="rounded-[22px] border border-[#4FB7E7]/12 bg-[#EFF8FD] p-5">
+                        <div className="rounded-[20px] border border-[#4FB7E7]/12 bg-[#EFF8FD] p-4 md:rounded-[22px] md:p-5">
                           <p className="text-sm text-[#6D7C92]">
                             Estimeret afkast
                           </p>
-                          <p className="mt-2 text-2xl font-bold text-[#253457]">
+                          <p className="mt-2 text-xl font-bold text-[#253457] md:text-2xl">
                             {formatCurrency(result.estimatedReturn)}
                           </p>
                         </div>
 
-                        <div className="rounded-[22px] border border-[#253457]/8 bg-[#F8FAFD] p-5">
+                        <div className="rounded-[20px] border border-[#253457]/8 bg-[#F8FAFD] p-4 md:rounded-[22px] md:p-5">
                           <p className="text-sm text-[#8D95A6]">
                             Samlet værdi ved pension
                           </p>
-                          <p className="mt-2 text-2xl font-bold text-[#253457]">
+                          <p className="mt-2 text-xl font-bold text-[#253457] md:text-2xl">
                             {formatCurrency(result.futureValue)}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-[30px] bg-gradient-to-br from-[#253457] to-[#31456F] p-6 text-white shadow-[0_22px_55px_rgba(37,52,87,0.24)]">
+                    <div className="rounded-3xl bg-gradient-to-br from-[#253457] to-[#31456F] p-5 text-white shadow-[0_22px_55px_rgba(37,52,87,0.24)] md:rounded-[30px] md:p-6">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-white/65">
                         Kort vurdering
                       </p>
 
-                      <h3 className="mt-3 text-3xl font-bold">
+                      <h3 className="mt-3 text-2xl font-bold md:text-3xl">
                         {result.rating}
                       </h3>
 
-                      <p className="mt-4 text-base leading-7 text-white/82">
+                      <p className="mt-4 text-sm leading-7 text-white/82 md:text-base">
                         {result.ratingText}
                       </p>
 
-                      <div className="mt-6 rounded-[22px] border border-white/12 bg-white/8 p-5">
+                      <div className="mt-5 rounded-[20px] border border-white/12 bg-white/8 p-4 md:mt-6 md:rounded-[22px] md:p-5">
                         <p className="text-sm text-white/70">
                           Mulig månedlig udbetaling
                         </p>
-                        <p className="mt-2 text-3xl font-bold">
+                        <p className="mt-2 text-2xl font-bold md:text-3xl">
                           {formatCurrency(result.estimatedMonthlyPension)}
                         </p>
                       </div>
 
-                      <p className="mt-6 text-sm leading-7 text-white/78">
+                      <p className="mt-5 text-sm leading-7 text-white/78 md:mt-6">
                         {result.teaserText}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-                    <div className="rounded-[30px] border border-[#253457]/10 bg-white p-6">
+                  <div className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr] md:mt-6 md:gap-6">
+                    <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 md:rounded-[30px] md:p-6">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
                         Hvad kan påvirke resultatet?
                       </p>
 
-                      <h3 className="mt-3 text-3xl font-bold text-[#253457]">
+                      <h3 className="mt-3 text-2xl font-bold text-[#253457] md:text-3xl">
                         De vigtigste områder at være opmærksom på
                       </h3>
 
-                      <p className="mt-4 max-w-3xl text-base leading-7 text-[#5F6D84]">
+                      <p className="mt-4 max-w-3xl text-sm leading-7 text-[#5F6D84] md:text-base">
                         Din beregning viser en mulig månedlig udbetaling på{" "}
                         <strong className="text-[#253457]">
                           {formatCurrency(result.estimatedMonthlyPension)}
@@ -764,7 +748,7 @@ export default function Home() {
                         at styrke din situation yderligere.
                       </p>
 
-                      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3 md:mt-6 md:gap-4">
                         <InsightCard
                           title="Indbetalinger"
                           text="Selv mindre løft i månedlige indbetalinger kan få stor betydning over mange år."
@@ -780,7 +764,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="rounded-[30px] border border-[#253457]/10 bg-[#F8FBFE] p-6">
+                    <div className="rounded-[24px] border border-[#253457]/10 bg-[#F8FBFE] p-5 md:rounded-[30px] md:p-6">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
                         Næste skridt
                       </p>
@@ -789,7 +773,7 @@ export default function Home() {
                         Få en mere personlig vurdering sendt til dig
                       </h4>
 
-                      <p className="mt-3 leading-7 text-[#5F6D84]">
+                      <p className="mt-3 text-sm leading-7 text-[#5F6D84] md:text-base">
                         Modtag en kort og mere personlig vurdering af dit
                         resultat samt input til, hvilke områder det kan være
                         relevant at undersøge nærmere.
@@ -805,7 +789,7 @@ export default function Home() {
                             key={item}
                             className="flex items-center gap-3 rounded-2xl border border-[#253457]/8 bg-white px-4 py-3"
                           >
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#4FB7E7]/15 text-sm font-bold text-[#253457]">
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4FB7E7]/15 text-sm font-bold text-[#253457]">
                               ✓
                             </div>
                             <span className="text-sm font-medium text-[#253457]">
@@ -817,7 +801,7 @@ export default function Home() {
 
                       <button
                         onClick={() => setShowLeadModal(true)}
-                        className="mt-6 w-full rounded-2xl bg-[#253457] px-5 py-4 font-semibold text-white shadow-[0_18px_40px_rgba(37,52,87,0.20)] transition hover:-translate-y-0.5 hover:bg-[#1F2C49]"
+                        className="mt-6 w-full rounded-2xl bg-[#253457] px-5 py-3.5 font-semibold text-white shadow-[0_18px_40px_rgba(37,52,87,0.20)] transition hover:-translate-y-0.5 hover:bg-[#1F2C49] md:py-4"
                       >
                         Få min vurdering
                       </button>
@@ -832,7 +816,7 @@ export default function Home() {
 
       {showLeadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172033]/60 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[32px] border border-white/70 bg-white p-7 shadow-[0_24px_80px_rgba(23,32,51,0.22)]">
+          <div className="w-full max-w-md rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_24px_80px_rgba(23,32,51,0.22)] md:rounded-[32px] md:p-7">
             {!leadSubmitted ? (
               <>
                 <div className="flex items-start justify-between gap-4">
@@ -840,10 +824,10 @@ export default function Home() {
                     <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
                       Personlig vurdering
                     </p>
-                    <h2 className="mt-2 text-3xl font-bold text-[#253457]">
+                    <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-3xl">
                       Få vurderingen sendt
                     </h2>
-                    <p className="mt-3 leading-7 text-[#5F6D84]">
+                    <p className="mt-3 text-sm leading-7 text-[#5F6D84] md:text-base">
                       Udfyld dine oplysninger, så sender vi din personlige
                       vurdering til dig.
                     </p>
@@ -866,7 +850,7 @@ export default function Home() {
                     <input
                       type="text"
                       placeholder="Fx Anders"
-                      className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-4 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15"
+                      className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-3.5 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15 md:py-4"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
@@ -879,7 +863,7 @@ export default function Home() {
                     <input
                       type="email"
                       placeholder="Fx anders@mail.dk"
-                      className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-4 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15"
+                      className="w-full rounded-2xl border border-[#253457]/12 bg-white px-4 py-3.5 text-[#253457] outline-none transition placeholder:text-[#8D95A6] focus:border-[#4FB7E7] focus:ring-4 focus:ring-[#4FB7E7]/15 md:py-4"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -887,7 +871,7 @@ export default function Home() {
 
                   <button
                     type="submit"
-                    className="mt-2 rounded-2xl bg-[#253457] px-5 py-4 font-semibold text-white transition hover:bg-[#1F2C49]"
+                    className="mt-2 rounded-2xl bg-[#253457] px-5 py-3.5 font-semibold text-white transition hover:bg-[#1F2C49] md:py-4"
                   >
                     Send min vurdering
                   </button>
@@ -903,10 +887,10 @@ export default function Home() {
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
                   Tak
                 </p>
-                <h2 className="mt-2 text-3xl font-bold text-[#253457]">
+                <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-3xl">
                   Din vurdering er registreret
                 </h2>
-                <p className="mt-4 leading-7 text-[#5F6D84]">
+                <p className="mt-4 text-sm leading-7 text-[#5F6D84] md:text-base">
                   Næste step er at koble rigtig mailafsendelse på, så brugeren
                   automatisk modtager vurderingen på mail.
                 </p>
@@ -916,7 +900,7 @@ export default function Home() {
                     setShowLeadModal(false)
                     setLeadSubmitted(false)
                   }}
-                  className="mt-6 rounded-2xl bg-[#253457] px-5 py-4 font-semibold text-white transition hover:bg-[#1F2C49]"
+                  className="mt-6 rounded-2xl bg-[#253457] px-5 py-3.5 font-semibold text-white transition hover:bg-[#1F2C49] md:py-4"
                 >
                   Luk
                 </button>
