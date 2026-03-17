@@ -650,8 +650,8 @@ export default function Home() {
                     />
                   </div>
 
-                  <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr] md:mt-8 md:gap-6">
-                    <div className="rounded-[22px] border border-[#253457]/10 bg-white p-4 shadow-sm md:rounded-[30px] md:p-6">
+                  <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:mt-8 md:gap-6">
+                    <div className="min-w-0 rounded-[22px] border border-[#253457]/10 bg-white p-4 shadow-sm md:rounded-[30px] md:p-6">
                       <div className="mb-4 md:mb-5">
                         <h3 className="text-lg font-bold text-[#253457] md:text-2xl">
                           Udvikling i din opsparing
@@ -698,7 +698,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="rounded-[20px] bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white shadow-[0_18px_40px_rgba(37,52,87,0.20)] md:rounded-[30px] md:p-6">
+                    <div className="min-w-0 rounded-[20px] bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white shadow-[0_18px_40px_rgba(37,52,87,0.20)] md:rounded-[30px] md:p-6">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-white/65">
                         Kort vurdering
                       </p>
