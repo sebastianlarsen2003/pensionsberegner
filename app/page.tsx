@@ -35,6 +35,19 @@ type PensionChartProps = {
   points: ChartPoint[]
 }
 
+type SimulationResult = {
+  yearsToRetirement: number
+  futureValue: number
+  totalOwnContributions: number
+  estimatedReturn: number
+  estimatedMonthlyPension: number
+  chartPoints: ChartPoint[]
+  rating: string
+  ratingText: string
+  ratingBadge: string
+  teaserText: string
+}
+
 const BRAND = {
   navy: "#253457",
   cyan: "#4FB7E7",
@@ -47,6 +60,144 @@ function cn(...classes: (string | false | null | undefined)[]) {
 
 function formatCurrency(value: number) {
   return `${value.toLocaleString("da-DK")} kr.`
+}
+
+function calculatePensionScenario({
+  age,
+  retirementAge,
+  currentSavings,
+  monthlyContribution,
+  annualReturn,
+}: {
+  age: number
+  retirementAge: number
+  currentSavings: number
+  monthlyContribution: number
+  annualReturn: number
+}): SimulationResult | null {
+  if (
+    !age ||
+    !retirementAge ||
+    currentSavings < 0 ||
+    monthlyContribution < 0 ||
+    retirementAge <= age
+  ) {
+    return null
+  }
+
+  const yearsToRetirement = retirementAge - age
+  const monthlyReturn = annualReturn / 12
+  const totalMonths = yearsToRetirement * 12
+
+  let totalValue = currentSavings
+  let totalPaidIn = currentSavings
+
+  const checkpoints =
+    yearsToRetirement <= 4
+      ? Array.from({ length: yearsToRetirement + 1 }, (_, i) => i)
+      : [
+          0,
+          Math.round(yearsToRetirement * 0.25),
+          Math.round(yearsToRetirement * 0.5),
+          Math.round(yearsToRetirement * 0.75),
+          yearsToRetirement,
+        ]
+
+  const uniqueCheckpoints = [...new Set(checkpoints)].sort((a, b) => a - b)
+
+  const pointMap = new Map<number, ChartPoint>()
+  pointMap.set(0, {
+    label: "I dag",
+    paidIn: Math.round(totalPaidIn),
+    returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
+    total: Math.round(totalValue),
+  })
+
+  for (let month = 1; month <= totalMonths; month++) {
+    totalValue += monthlyContribution
+    totalPaidIn += monthlyContribution
+    totalValue *= 1 + monthlyReturn
+
+    const currentYear = Math.floor(month / 12)
+
+    if (
+      month % 12 === 0 &&
+      uniqueCheckpoints.includes(currentYear) &&
+      !pointMap.has(currentYear)
+    ) {
+      pointMap.set(currentYear, {
+        label:
+          currentYear === yearsToRetirement
+            ? "Ved pension"
+            : `Om ${currentYear} år`,
+        paidIn: Math.round(totalPaidIn),
+        returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
+        total: Math.round(totalValue),
+      })
+    }
+  }
+
+  if (!pointMap.has(yearsToRetirement)) {
+    pointMap.set(yearsToRetirement, {
+      label: "Ved pension",
+      paidIn: Math.round(totalPaidIn),
+      returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
+      total: Math.round(totalValue),
+    })
+  }
+
+  const chartPoints = uniqueCheckpoints
+    .map((year) => pointMap.get(year))
+    .filter(Boolean) as ChartPoint[]
+
+  const futureValue = Math.round(totalValue)
+  const totalOwnContributions = Math.round(totalPaidIn)
+  const estimatedReturn = Math.max(
+    0,
+    Math.round(futureValue - totalOwnContributions)
+  )
+  const estimatedMonthlyPension = Math.round(futureValue / (20 * 12))
+
+  let rating = ""
+  let ratingText = ""
+  let ratingBadge = ""
+  let teaserText = ""
+
+  if (estimatedMonthlyPension < 10000) {
+    rating = "Lavt niveau"
+    ratingBadge = "Behov for eftersyn"
+    ratingText =
+      "Din beregning peger på et relativt lavt niveau i forhold til den tid, der er tilbage til pension. Det kan være relevant at se nærmere på indbetalinger, investeringsstrategi og den samlede pensionsstruktur."
+    teaserText =
+      "Selv mindre justeringer kan over tid gøre en forskel, især når der stadig er nogle år til pension."
+  } else if (estimatedMonthlyPension < 20000) {
+    rating = "Fornuftigt udgangspunkt"
+    ratingBadge = "Muligt optimeringspotentiale"
+    ratingText =
+      "Du har et fornuftigt udgangspunkt, men der kan stadig være muligheder for at forbedre din samlede pensionssituation afhængigt af dine mål, tidshorisont og risikoprofil."
+    teaserText =
+      "Det er ofte i denne type situation, at en gennemgang kan vise, om du er godt nok dækket ind i forhold til det pensionsliv, du ønsker."
+  } else {
+    rating = "Stærkt udgangspunkt"
+    ratingBadge = "Ser stærkt ud"
+    ratingText =
+      "Din beregning ser umiddelbart stærk ud. Det kan stadig være relevant at få vurderet, om sammensætningen af din pension og din fremtidige udbetalingsplan passer til dine ønsker."
+    teaserText =
+      "Et stærkt niveau er ikke nødvendigvis det samme som en optimal løsning, så det kan stadig være værd at få det vurderet."
+  }
+
+  return {
+    yearsToRetirement,
+    futureValue,
+    totalOwnContributions,
+    estimatedReturn,
+    estimatedMonthlyPension,
+    chartPoints,
+    rating,
+    ratingText,
+    ratingBadge,
+    teaserText,
+  }
 }
 
 function StatCard({
@@ -125,6 +276,31 @@ function InputField({
         onChange={(e) => onChange(e.target.value)}
       />
     </div>
+  )
+}
+
+function OptionPill({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-2 text-sm font-medium transition",
+        active
+          ? "border-[#253457] bg-[#253457] text-white"
+          : "border-[#253457]/10 bg-white text-[#5F6D84] hover:border-[#253457]/25"
+      )}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -262,6 +438,12 @@ export default function Home() {
   const [monthlyContribution, setMonthlyContribution] = useState("")
   const [hasCalculated, setHasCalculated] = useState(false)
 
+  const [comparisonMode, setComparisonMode] = useState<"cost" | "return">(
+    "cost"
+  )
+  const [costSaving, setCostSaving] = useState<0.5 | 0.75 | 1>(0.5)
+  const [returnScenario, setReturnScenario] = useState<5 | 5.5 | 6>(5.5)
+
   const [showLeadModal, setShowLeadModal] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -269,137 +451,64 @@ export default function Home() {
 
   const resultRef = useRef<HTMLElement>(null)
 
-  const result = useMemo(() => {
+  const results = useMemo(() => {
     const currentAge = Number(age)
     const pensionAge = Number(retirementAge)
     const savings = Number(currentSavings)
     const monthly = Number(monthlyContribution)
 
-    if (
-      !currentAge ||
-      !pensionAge ||
-      savings < 0 ||
-      monthly < 0 ||
-      pensionAge <= currentAge
-    ) {
-      return null
-    }
+    const baselineReturn = 0.05
 
-    const yearsToRetirement = pensionAge - currentAge
-    const annualReturn = 0.05
-    const monthlyReturn = annualReturn / 12
-    const totalMonths = yearsToRetirement * 12
-
-    let totalValue = savings
-    let totalPaidIn = savings
-
-    const checkpoints =
-      yearsToRetirement <= 4
-        ? Array.from({ length: yearsToRetirement + 1 }, (_, i) => i)
-        : [
-            0,
-            Math.round(yearsToRetirement * 0.25),
-            Math.round(yearsToRetirement * 0.5),
-            Math.round(yearsToRetirement * 0.75),
-            yearsToRetirement,
-          ]
-
-    const uniqueCheckpoints = [...new Set(checkpoints)].sort((a, b) => a - b)
-
-    const pointMap = new Map<number, ChartPoint>()
-    pointMap.set(0, {
-      label: "I dag",
-      paidIn: Math.round(totalPaidIn),
-      returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
-      total: Math.round(totalValue),
+    const baseline = calculatePensionScenario({
+      age: currentAge,
+      retirementAge: pensionAge,
+      currentSavings: savings,
+      monthlyContribution: monthly,
+      annualReturn: baselineReturn,
     })
 
-    for (let month = 1; month <= totalMonths; month++) {
-      totalValue += monthly
-      totalPaidIn += monthly
-      totalValue *= 1 + monthlyReturn
+    if (!baseline) return null
 
-      const currentYear = Math.floor(month / 12)
+    const improvedAnnualReturn =
+      comparisonMode === "cost" ? baselineReturn + costSaving / 100 : returnScenario / 100
 
-      if (
-        month % 12 === 0 &&
-        uniqueCheckpoints.includes(currentYear) &&
-        !pointMap.has(currentYear)
-      ) {
-        pointMap.set(currentYear, {
-          label:
-            currentYear === yearsToRetirement
-              ? "Ved pension"
-              : `Om ${currentYear} år`,
-          paidIn: Math.round(totalPaidIn),
-          returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
-          total: Math.round(totalValue),
-        })
-      }
-    }
+    const improved = calculatePensionScenario({
+      age: currentAge,
+      retirementAge: pensionAge,
+      currentSavings: savings,
+      monthlyContribution: monthly,
+      annualReturn: improvedAnnualReturn,
+    })
 
-    if (!pointMap.has(yearsToRetirement)) {
-      pointMap.set(yearsToRetirement, {
-        label: "Ved pension",
-        paidIn: Math.round(totalPaidIn),
-        returns: Math.max(0, Math.round(totalValue - totalPaidIn)),
-        total: Math.round(totalValue),
-      })
-    }
+    if (!improved) return null
 
-    const chartPoints = uniqueCheckpoints
-      .map((year) => pointMap.get(year))
-      .filter(Boolean) as ChartPoint[]
+    const futureValueDifference = improved.futureValue - baseline.futureValue
+    const monthlyDifference =
+      improved.estimatedMonthlyPension - baseline.estimatedMonthlyPension
+    const returnDifference = improved.estimatedReturn - baseline.estimatedReturn
 
-    const futureValue = Math.round(totalValue)
-    const totalOwnContributions = Math.round(totalPaidIn)
-    const estimatedReturn = Math.max(
-      0,
-      Math.round(futureValue - totalOwnContributions)
-    )
-    const estimatedMonthlyPension = Math.round(futureValue / (20 * 12))
-
-    let rating = ""
-    let ratingText = ""
-    let ratingBadge = ""
-    let teaserText = ""
-
-    if (estimatedMonthlyPension < 10000) {
-      rating = "Lavt niveau"
-      ratingBadge = "Behov for eftersyn"
-      ratingText =
-        "Din beregning peger på et relativt lavt niveau i forhold til den tid, der er tilbage til pension. Det kan være relevant at se nærmere på indbetalinger, investeringsstrategi og den samlede pensionsstruktur."
-      teaserText =
-        "Selv mindre justeringer kan over tid gøre en forskel, især når der stadig er nogle år til pension."
-    } else if (estimatedMonthlyPension < 20000) {
-      rating = "Fornuftigt udgangspunkt"
-      ratingBadge = "Muligt optimeringspotentiale"
-      ratingText =
-        "Du har et fornuftigt udgangspunkt, men der kan stadig være muligheder for at forbedre din samlede pensionssituation afhængigt af dine mål, tidshorisont og risikoprofil."
-      teaserText =
-        "Det er ofte i denne type situation, at en gennemgang kan vise, om du er godt nok dækket ind i forhold til det pensionsliv, du ønsker."
-    } else {
-      rating = "Stærkt udgangspunkt"
-      ratingBadge = "Ser stærkt ud"
-      ratingText =
-        "Din beregning ser umiddelbart stærk ud. Det kan stadig være relevant at få vurderet, om sammensætningen af din pension og din fremtidige udbetalingsplan passer til dine ønsker."
-      teaserText =
-        "Et stærkt niveau er ikke nødvendigvis det samme som en optimal løsning, så det kan stadig være værd at få det vurderet."
-    }
+    const comparisonLabel =
+      comparisonMode === "cost"
+        ? `Hvis vi kan spare dig for ${String(costSaving).replace(".", ",")}% i omkostninger`
+        : `Hvis afkastet i stedet bliver ${String(returnScenario).replace(".", ",")}%`
 
     return {
-      yearsToRetirement,
-      futureValue,
-      totalOwnContributions,
-      estimatedReturn,
-      estimatedMonthlyPension,
-      rating,
-      ratingText,
-      ratingBadge,
-      teaserText,
-      chartPoints,
+      baseline,
+      improved,
+      futureValueDifference,
+      monthlyDifference,
+      returnDifference,
+      comparisonLabel,
     }
-  }, [age, retirementAge, currentSavings, monthlyContribution])
+  }, [
+    age,
+    retirementAge,
+    currentSavings,
+    monthlyContribution,
+    comparisonMode,
+    costSaving,
+    returnScenario,
+  ])
 
   const handleCalculate = () => {
     setHasCalculated(true)
@@ -415,7 +524,7 @@ export default function Home() {
   const handleLeadSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (!name || !email || !result) return
+    if (!name || !email || !results) return
 
     console.log("Lead captured:", {
       name,
@@ -424,7 +533,10 @@ export default function Home() {
       retirementAge,
       currentSavings,
       monthlyContribution,
-      result,
+      comparisonMode,
+      costSaving,
+      returnScenario,
+      results,
     })
 
     setLeadSubmitted(true)
@@ -483,8 +595,8 @@ export default function Home() {
 
               <p className="mt-5 max-w-xl text-base leading-7 text-[#5F6D84] md:text-lg md:leading-8">
                 Beregn et vejledende estimat af, hvordan din opsparing kan
-                udvikle sig frem mod pension, og få en første indikation af, om
-                der kan være områder, der er værd at kigge nærmere på.
+                udvikle sig frem mod pension, og se hvad det kan betyde, hvis
+                omkostningerne sænkes eller afkastet forbedres.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5 md:mt-8 md:gap-3">
@@ -505,28 +617,28 @@ export default function Home() {
               <div className="mt-8 grid gap-3 sm:grid-cols-3 md:mt-10 md:gap-4">
                 <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
-                    Hurtigt overblik
+                    Sådan ser det ud nu
                   </p>
                   <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Få et klart første estimat uden en tung proces.
+                    Se din nuværende fremskrivning baseret på 5% afkast.
                   </p>
                 </div>
 
                 <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
-                    Foreløbig vurdering
+                    Sammenlign scenarier
                   </p>
                   <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Se om der kan være optimeringspotentiale.
+                    Se forskellen hvis omkostninger falder eller afkast stiger.
                   </p>
                 </div>
 
                 <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
                   <p className="text-sm font-semibold text-[#253457]">
-                    Tryg oplevelse
+                    Mere konkret værdi
                   </p>
                   <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Et enkelt og professionelt værktøj til første afklaring.
+                    Få vist den mulige forskel i kroner og månedlig udbetaling.
                   </p>
                 </div>
               </div>
@@ -543,8 +655,8 @@ export default function Home() {
                     Beregn dit estimat
                   </h2>
                   <p className="mt-3 max-w-md text-sm leading-6 text-[#5F6D84]">
-                    Indtast dine oplysninger og få et hurtigt, vejledende
-                    overblik over din pension og mulige næste skridt.
+                    Udfyld dine oplysninger og vælg derefter det scenarie, du vil
+                    sammenligne med.
                   </p>
                 </div>
 
@@ -577,6 +689,71 @@ export default function Home() {
                     placeholder="Fx 3500"
                   />
 
+                  <div className="rounded-[18px] border border-[#253457]/10 bg-[#F8FAFD] p-4">
+                    <p className="text-sm font-semibold text-[#253457]">
+                      Hvad vil du sammenligne med?
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <OptionPill
+                        active={comparisonMode === "cost"}
+                        label="Spare omkostninger"
+                        onClick={() => setComparisonMode("cost")}
+                      />
+                      <OptionPill
+                        active={comparisonMode === "return"}
+                        label="Højere afkast"
+                        onClick={() => setComparisonMode("return")}
+                      />
+                    </div>
+
+                    {comparisonMode === "cost" ? (
+                      <div className="mt-4">
+                        <p className="text-sm text-[#5F6D84]">
+                          Omkostningsbesparelse
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <OptionPill
+                            active={costSaving === 0.5}
+                            label="0,5%"
+                            onClick={() => setCostSaving(0.5)}
+                          />
+                          <OptionPill
+                            active={costSaving === 0.75}
+                            label="0,75%"
+                            onClick={() => setCostSaving(0.75)}
+                          />
+                          <OptionPill
+                            active={costSaving === 1}
+                            label="1%"
+                            onClick={() => setCostSaving(1)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4">
+                        <p className="text-sm text-[#5F6D84]">Afkastscenarie</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <OptionPill
+                            active={returnScenario === 5}
+                            label="5%"
+                            onClick={() => setReturnScenario(5)}
+                          />
+                          <OptionPill
+                            active={returnScenario === 5.5}
+                            label="5,5%"
+                            onClick={() => setReturnScenario(5.5)}
+                          />
+                          <OptionPill
+                            active={returnScenario === 6}
+                            label="6%"
+                            onClick={() => setReturnScenario(6)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     onClick={handleCalculate}
                     className="mt-1 rounded-2xl bg-[#253457] px-5 py-3 text-base font-semibold text-white shadow-[0_18px_40px_rgba(37,52,87,0.25)] transition hover:-translate-y-0.5 hover:bg-[#1F2C49] md:py-4"
@@ -586,8 +763,8 @@ export default function Home() {
 
                   <div className="rounded-2xl border border-[#253457]/8 bg-[#F8FAFD] px-4 py-3">
                     <p className="text-xs leading-5 text-[#6C7890]">
-                      Beregningen er vejledende, før skat, og bør ikke stå alene
-                      ved større økonomiske beslutninger.
+                      Beregningen er vejledende, før skat, og viser forenklede
+                      scenarier baseret på fast afkast.
                     </p>
                   </div>
                 </div>
@@ -597,7 +774,7 @@ export default function Home() {
 
           {hasCalculated && (
             <section ref={resultRef} className="mt-10 md:mt-16">
-              {!result ? (
+              {!results ? (
                 <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-[0_16px_50px_rgba(23,32,51,0.06)] md:rounded-[30px] md:p-8">
                   <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-5 md:rounded-[24px] md:p-6">
                     <h2 className="text-2xl font-bold text-[#253457]">
@@ -611,61 +788,123 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[24px] border border-[#253457]/10 bg-white p-4 shadow-[0_24px_80px_rgba(23,32,51,0.08)] md:rounded-[34px] md:p-8">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-5">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
-                        Dit foreløbige overblik
-                      </p>
-                      <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-4xl lg:text-5xl">
-                        Her er dit pensionsestimat
-                      </h2>
-                      <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5F6D84] md:text-base md:leading-7">
-                        Resultatet giver dig en første pejling på, hvordan din
-                        opsparing kan udvikle sig, og om der kan være forhold,
-                        der er værd at få vurderet nærmere.
-                      </p>
+                <div className="space-y-6">
+                  <div className="rounded-[24px] border border-[#253457]/10 bg-white p-4 shadow-[0_24px_80px_rgba(23,32,51,0.08)] md:rounded-[34px] md:p-8">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-5">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
+                          Dit foreløbige overblik
+                        </p>
+                        <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-4xl lg:text-5xl">
+                          Her er dit pensionsestimat
+                        </h2>
+                        <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5F6D84] md:text-base md:leading-7">
+                          Først ser du din nuværende fremskrivning. Derefter ser
+                          du et muligt forbedret scenarie og den konkrete forskel
+                          i kroner.
+                        </p>
+                      </div>
+
+                      <div className="inline-flex w-fit items-center rounded-full border border-[#4FB7E7]/20 bg-[#EFF8FD] px-4 py-2 text-sm font-semibold text-[#253457]">
+                        {results.baseline.ratingBadge}
+                      </div>
                     </div>
 
-                    <div className="inline-flex w-fit items-center rounded-full border border-[#4FB7E7]/20 bg-[#EFF8FD] px-4 py-2 text-sm font-semibold text-[#253457]">
-                      {result.ratingBadge}
+                    <div className="mt-6 grid gap-4 md:mt-8 md:grid-cols-2 md:gap-5">
+                      <div className="rounded-[20px] border border-[#253457]/10 bg-white p-4 md:rounded-[28px] md:p-6">
+                        <p className="text-sm font-semibold text-[#253457]">
+                          Sådan ser det ud nu
+                        </p>
+
+                        <div className="mt-4">
+                          <div className="rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
+                            <p className="text-sm text-white/75">
+                              Forventet opsparing ved pension
+                            </p>
+                            <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
+                              {formatCurrency(results.baseline.futureValue)}
+                            </p>
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="rounded-[18px] border border-[#253457]/10 bg-white p-4 shadow-[0_10px_24px_rgba(23,32,51,0.05)] md:rounded-[28px] md:p-6">
+                              <p className="text-sm text-[#8D95A6]">
+                                Mulig månedlig udbetaling
+                              </p>
+                              <p className="mt-2 text-xl font-bold text-[#253457] md:mt-3 md:text-4xl">
+                                {formatCurrency(
+                                  results.baseline.estimatedMonthlyPension
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[20px] border border-[#4FB7E7]/20 bg-[#EFF8FD] p-4 md:rounded-[28px] md:p-6">
+                        <p className="text-sm font-semibold text-[#253457]">
+                          {results.comparisonLabel}
+                        </p>
+
+                        <div className="mt-4">
+                          <div className="rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
+                            <p className="text-sm text-white/75">
+                              Forventet opsparing ved pension
+                            </p>
+                            <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
+                              {formatCurrency(results.improved.futureValue)}
+                            </p>
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="rounded-[18px] border border-[#253457]/10 bg-white p-4 shadow-[0_10px_24px_rgba(23,32,51,0.05)] md:rounded-[28px] md:p-6">
+                              <p className="text-sm text-[#8D95A6]">
+                                Mulig månedlig udbetaling
+                              </p>
+                              <p className="mt-2 text-xl font-bold text-[#253457] md:mt-3 md:text-4xl">
+                                {formatCurrency(
+                                  results.improved.estimatedMonthlyPension
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:mt-8 md:gap-5">
+                      <StatCard
+                        label="Mulig forskel i opsparing"
+                        value={formatCurrency(results.futureValueDifference)}
+                        tone="primary"
+                      />
+                      <StatCard
+                        label="Mulig forskel pr. måned"
+                        value={formatCurrency(results.monthlyDifference)}
+                        tone="accent"
+                      />
+                      <StatCard
+                        label="Mulig ekstra værdi fra afkast"
+                        value={formatCurrency(results.returnDifference)}
+                        tone="default"
+                      />
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2 md:mt-8 md:grid-cols-3 md:gap-5">
-                    <StatCard
-                      label="År til pension"
-                      value={result.yearsToRetirement}
-                      tone="default"
-                    />
-                    <StatCard
-                      label="Forventet opsparing ved pension"
-                      value={formatCurrency(result.futureValue)}
-                      tone="primary"
-                    />
-                    <StatCard
-                      label="Mulig månedlig udbetaling"
-                      value={formatCurrency(result.estimatedMonthlyPension)}
-                      tone="accent"
-                    />
-                  </div>
-
-                  <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:mt-8 md:gap-6">
+                  <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:gap-6">
                     <div className="min-w-0 rounded-[22px] border border-[#253457]/10 bg-white p-4 shadow-sm md:rounded-[30px] md:p-6">
                       <div className="mb-4 md:mb-5">
                         <h3 className="text-lg font-bold text-[#253457] md:text-2xl">
                           Udvikling i din opsparing
                         </h3>
                         <p className="mt-2 text-sm leading-6 text-[#5F6D84] md:text-base">
-                          Her kan du se, hvor meget der forventeligt kommer fra
-                          dine egne indbetalinger, hvor meget der kan komme fra
-                          afkast, og hvordan det tilsammen kan udvikle sig frem
-                          mod pension.
+                          Grafen viser din nuværende fremskrivning. Den bygger på
+                          dine egne indbetalinger og et vejledende afkast på 5%.
                         </p>
                       </div>
 
                       <div className="rounded-[18px] border border-[#253457]/8 bg-[#F8FBFE] p-2.5 md:rounded-[26px] md:p-5">
-                        <PensionChart points={result.chartPoints} />
+                        <PensionChart points={results.baseline.chartPoints} />
                       </div>
 
                       <div className="mt-4 grid gap-3 md:mt-5 md:grid-cols-3 md:gap-4">
@@ -674,7 +913,7 @@ export default function Home() {
                             Samlet indbetalt
                           </p>
                           <p className="mt-2 text-lg font-bold text-[#253457] md:text-2xl">
-                            {formatCurrency(result.totalOwnContributions)}
+                            {formatCurrency(results.baseline.totalOwnContributions)}
                           </p>
                         </div>
 
@@ -683,7 +922,7 @@ export default function Home() {
                             Estimeret afkast
                           </p>
                           <p className="mt-2 text-lg font-bold text-[#253457] md:text-2xl">
-                            {formatCurrency(result.estimatedReturn)}
+                            {formatCurrency(results.baseline.estimatedReturn)}
                           </p>
                         </div>
 
@@ -692,7 +931,7 @@ export default function Home() {
                             Samlet værdi ved pension
                           </p>
                           <p className="mt-2 text-lg font-bold text-[#253457] md:text-2xl">
-                            {formatCurrency(result.futureValue)}
+                            {formatCurrency(results.baseline.futureValue)}
                           </p>
                         </div>
                       </div>
@@ -704,64 +943,67 @@ export default function Home() {
                       </p>
 
                       <h3 className="mt-2 text-xl font-bold md:mt-3 md:text-3xl">
-                        {result.rating}
+                        {results.baseline.rating}
                       </h3>
 
                       <p className="mt-4 text-sm leading-7 text-white/82 md:text-base">
-                        {result.ratingText}
+                        {results.baseline.ratingText}
                       </p>
 
                       <div className="mt-5 rounded-[18px] border border-white/12 bg-white/8 p-4 md:mt-6 md:rounded-[22px] md:p-5">
                         <p className="text-sm text-white/70">
-                          Mulig månedlig udbetaling
+                          Mulig forbedring i samlet opsparing
                         </p>
                         <p className="mt-2 text-2xl font-bold md:text-3xl">
-                          {formatCurrency(result.estimatedMonthlyPension)}
+                          {formatCurrency(results.futureValueDifference)}
                         </p>
                       </div>
 
                       <p className="mt-5 text-sm leading-7 text-white/78 md:mt-6">
-                        {result.teaserText}
+                        {results.baseline.teaserText}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-5 lg:grid-cols-[1.15fr_0.85fr] md:mt-6 md:gap-6">
+                  <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] md:gap-6">
                     <div className="rounded-[22px] border border-[#253457]/10 bg-white p-4 md:rounded-[30px] md:p-6">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
-                        Hvad kan påvirke resultatet?
+                        Hvad viser sammenligningen?
                       </p>
 
                       <h3 className="mt-3 text-2xl font-bold text-[#253457] md:text-3xl">
-                        De vigtigste områder at være opmærksom på
+                        Den mulige værdi af optimering
                       </h3>
 
                       <p className="mt-4 max-w-3xl text-sm leading-7 text-[#5F6D84] md:text-base">
-                        Din beregning viser en mulig månedlig udbetaling på{" "}
+                        Din nuværende fremskrivning viser en samlet værdi ved
+                        pension på{" "}
                         <strong className="text-[#253457]">
-                          {formatCurrency(result.estimatedMonthlyPension)}
-                        </strong>{" "}
-                        samt en samlet værdi ved pension på{" "}
-                        <strong className="text-[#253457]">
-                          {formatCurrency(result.futureValue)}
+                          {formatCurrency(results.baseline.futureValue)}
                         </strong>
-                        . Med {result.yearsToRetirement} år til pension er der
-                        fortsat tid til at påvirke udviklingen, hvis du ønsker
-                        at styrke din situation yderligere.
+                        . I det valgte scenarie bliver den potentielle værdi{" "}
+                        <strong className="text-[#253457]">
+                          {formatCurrency(results.improved.futureValue)}
+                        </strong>
+                        . Det svarer til en mulig forskel på{" "}
+                        <strong className="text-[#253457]">
+                          {formatCurrency(results.futureValueDifference)}
+                        </strong>{" "}
+                        frem mod pension.
                       </p>
 
                       <div className="mt-5 grid gap-3 sm:grid-cols-3 md:mt-6 md:gap-4">
                         <InsightCard
-                          title="Indbetalinger"
-                          text="Selv mindre løft i månedlige indbetalinger kan få stor betydning over mange år."
+                          title="Omkostninger"
+                          text="Lavere omkostninger kan over tid slå igennem som et højere effektivt nettoafkast."
                         />
                         <InsightCard
-                          title="Strategi"
-                          text="Risiko, investeringsprofil og sammensætning kan påvirke både afkast og udsving."
+                          title="Afkast"
+                          text="Små forbedringer i afkast kan få stor betydning, når de får lov at virke over mange år."
                         />
                         <InsightCard
-                          title="Planlægning"
-                          text="Tidspunkt for pension og udbetalingsplan kan have stor betydning for helheden."
+                          title="Tid"
+                          text="Jo længere tid til pension, desto større bliver effekten af selv små forbedringer."
                         />
                       </div>
                     </div>
@@ -785,7 +1027,7 @@ export default function Home() {
                         {[
                           "Uddybning af dit estimat",
                           "Vurdering af dit nuværende niveau",
-                          "Input til mulige næste skridt",
+                          "Perspektiv på mulige forbedringer",
                         ].map((item) => (
                           <div
                             key={item}
