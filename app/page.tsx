@@ -235,23 +235,6 @@ function StatCard({
   )
 }
 
-function InsightCard({
-  title,
-  text,
-}: {
-  title: string
-  text: string
-}) {
-  return (
-    <div className="rounded-[16px] border border-[#253457]/10 bg-white p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] md:rounded-[24px] md:p-5">
-      <p className="text-sm font-semibold text-[#253457]">{title}</p>
-      <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-        {text}
-      </p>
-    </div>
-  )
-}
-
 function InputField({
   label,
   value,
@@ -438,11 +421,7 @@ export default function Home() {
   const [monthlyContribution, setMonthlyContribution] = useState("")
   const [hasCalculated, setHasCalculated] = useState(false)
 
-  const [comparisonMode, setComparisonMode] = useState<"cost" | "return">(
-    "cost"
-  )
   const [costSaving, setCostSaving] = useState<0.5 | 0.75 | 1>(0.5)
-  const [returnScenario, setReturnScenario] = useState<5 | 5.5 | 6>(5.5)
 
   const [showLeadModal, setShowLeadModal] = useState(false)
   const [name, setName] = useState("")
@@ -469,8 +448,7 @@ export default function Home() {
 
     if (!baseline) return null
 
-    const improvedAnnualReturn =
-      comparisonMode === "cost" ? baselineReturn + costSaving / 100 : returnScenario / 100
+    const improvedAnnualReturn = baselineReturn + costSaving / 100
 
     const improved = calculatePensionScenario({
       age: currentAge,
@@ -482,33 +460,20 @@ export default function Home() {
 
     if (!improved) return null
 
-    const futureValueDifference = improved.futureValue - baseline.futureValue
-    const monthlyDifference =
-      improved.estimatedMonthlyPension - baseline.estimatedMonthlyPension
     const returnDifference = improved.estimatedReturn - baseline.estimatedReturn
 
-    const comparisonLabel =
-      comparisonMode === "cost"
-        ? `Hvis vi kan spare dig for ${String(costSaving).replace(".", ",")}% i omkostninger`
-        : `Hvis afkastet i stedet bliver ${String(returnScenario).replace(".", ",")}%`
+    const comparisonLabel = `Hvis vi kan spare dig for ${String(costSaving).replace(
+      ".",
+      ","
+    )}% i omkostninger`
 
     return {
       baseline,
       improved,
-      futureValueDifference,
-      monthlyDifference,
       returnDifference,
       comparisonLabel,
     }
-  }, [
-    age,
-    retirementAge,
-    currentSavings,
-    monthlyContribution,
-    comparisonMode,
-    costSaving,
-    returnScenario,
-  ])
+  }, [age, retirementAge, currentSavings, monthlyContribution, costSaving])
 
   const handleCalculate = () => {
     setHasCalculated(true)
@@ -533,9 +498,7 @@ export default function Home() {
       retirementAge,
       currentSavings,
       monthlyContribution,
-      comparisonMode,
       costSaving,
-      returnScenario,
       results,
     })
 
@@ -596,7 +559,7 @@ export default function Home() {
               <p className="mt-5 max-w-xl text-base leading-7 text-[#5F6D84] md:text-lg md:leading-8">
                 Beregn et vejledende estimat af, hvordan din opsparing kan
                 udvikle sig frem mod pension, og se hvad det kan betyde, hvis
-                omkostningerne sænkes eller afkastet forbedres.
+                omkostningerne sænkes.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5 md:mt-8 md:gap-3">
@@ -613,35 +576,6 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3 md:mt-10 md:gap-4">
-                <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
-                  <p className="text-sm font-semibold text-[#253457]">
-                    Sådan ser det ud nu
-                  </p>
-                  <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Se din nuværende fremskrivning baseret på 5% afkast.
-                  </p>
-                </div>
-
-                <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
-                  <p className="text-sm font-semibold text-[#253457]">
-                    Sammenlign scenarier
-                  </p>
-                  <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Se forskellen hvis omkostninger falder eller afkast stiger.
-                  </p>
-                </div>
-
-                <div className="rounded-[16px] border border-[#253457]/10 bg-white/85 p-3 shadow-[0_10px_24px_rgba(23,32,51,0.04)] backdrop-blur md:rounded-[24px] md:p-5">
-                  <p className="text-sm font-semibold text-[#253457]">
-                    Mere konkret værdi
-                  </p>
-                  <p className="mt-1 text-sm leading-5 text-[#5F6D84] md:mt-2 md:leading-6">
-                    Få vist den mulige forskel i kroner og månedlig udbetaling.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="relative">
@@ -655,8 +589,8 @@ export default function Home() {
                     Beregn dit estimat
                   </h2>
                   <p className="mt-3 max-w-md text-sm leading-6 text-[#5F6D84]">
-                    Udfyld dine oplysninger og vælg derefter det scenarie, du vil
-                    sammenligne med.
+                    Udfyld dine oplysninger og vælg, hvor meget du vil sammenligne
+                    på omkostninger.
                   </p>
                 </div>
 
@@ -691,67 +625,25 @@ export default function Home() {
 
                   <div className="rounded-[18px] border border-[#253457]/10 bg-[#F8FAFD] p-4">
                     <p className="text-sm font-semibold text-[#253457]">
-                      Hvad vil du sammenligne med?
+                      Hvad vil det betyde, hvis vi kan spare dig for:
                     </p>
-
                     <div className="mt-3 flex flex-wrap gap-2">
                       <OptionPill
-                        active={comparisonMode === "cost"}
-                        label="Spare omkostninger"
-                        onClick={() => setComparisonMode("cost")}
+                        active={costSaving === 0.5}
+                        label="0,5%"
+                        onClick={() => setCostSaving(0.5)}
                       />
                       <OptionPill
-                        active={comparisonMode === "return"}
-                        label="Højere afkast"
-                        onClick={() => setComparisonMode("return")}
+                        active={costSaving === 0.75}
+                        label="0,75%"
+                        onClick={() => setCostSaving(0.75)}
+                      />
+                      <OptionPill
+                        active={costSaving === 1}
+                        label="1%"
+                        onClick={() => setCostSaving(1)}
                       />
                     </div>
-
-                    {comparisonMode === "cost" ? (
-                      <div className="mt-4">
-                        <p className="text-sm text-[#5F6D84]">
-                          Omkostningsbesparelse
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <OptionPill
-                            active={costSaving === 0.5}
-                            label="0,5%"
-                            onClick={() => setCostSaving(0.5)}
-                          />
-                          <OptionPill
-                            active={costSaving === 0.75}
-                            label="0,75%"
-                            onClick={() => setCostSaving(0.75)}
-                          />
-                          <OptionPill
-                            active={costSaving === 1}
-                            label="1%"
-                            onClick={() => setCostSaving(1)}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-4">
-                        <p className="text-sm text-[#5F6D84]">Afkastscenarie</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <OptionPill
-                            active={returnScenario === 5}
-                            label="5%"
-                            onClick={() => setReturnScenario(5)}
-                          />
-                          <OptionPill
-                            active={returnScenario === 5.5}
-                            label="5,5%"
-                            onClick={() => setReturnScenario(5.5)}
-                          />
-                          <OptionPill
-                            active={returnScenario === 6}
-                            label="6%"
-                            onClick={() => setReturnScenario(6)}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <button
@@ -800,8 +692,7 @@ export default function Home() {
                         </h2>
                         <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5F6D84] md:text-base md:leading-7">
                           Først ser du din nuværende fremskrivning. Derefter ser
-                          du et muligt forbedret scenarie og den konkrete forskel
-                          i kroner.
+                          du et muligt forbedret scenarie ved lavere omkostninger.
                         </p>
                       </div>
 
@@ -816,28 +707,13 @@ export default function Home() {
                           Sådan ser det ud nu
                         </p>
 
-                        <div className="mt-4">
-                          <div className="rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
-                            <p className="text-sm text-white/75">
-                              Forventet opsparing ved pension
-                            </p>
-                            <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
-                              {formatCurrency(results.baseline.futureValue)}
-                            </p>
-                          </div>
-
-                          <div className="mt-3">
-                            <div className="rounded-[18px] border border-[#253457]/10 bg-white p-4 shadow-[0_10px_24px_rgba(23,32,51,0.05)] md:rounded-[28px] md:p-6">
-                              <p className="text-sm text-[#8D95A6]">
-                                Mulig månedlig udbetaling
-                              </p>
-                              <p className="mt-2 text-xl font-bold text-[#253457] md:mt-3 md:text-4xl">
-                                {formatCurrency(
-                                  results.baseline.estimatedMonthlyPension
-                                )}
-                              </p>
-                            </div>
-                          </div>
+                        <div className="mt-4 rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
+                          <p className="text-sm text-white/75">
+                            Forventet opsparing ved pension
+                          </p>
+                          <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
+                            {formatCurrency(results.baseline.futureValue)}
+                          </p>
                         </div>
                       </div>
 
@@ -846,47 +722,22 @@ export default function Home() {
                           {results.comparisonLabel}
                         </p>
 
-                        <div className="mt-4">
-                          <div className="rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
-                            <p className="text-sm text-white/75">
-                              Forventet opsparing ved pension
-                            </p>
-                            <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
-                              {formatCurrency(results.improved.futureValue)}
-                            </p>
-                          </div>
-
-                          <div className="mt-3">
-                            <div className="rounded-[18px] border border-[#253457]/10 bg-white p-4 shadow-[0_10px_24px_rgba(23,32,51,0.05)] md:rounded-[28px] md:p-6">
-                              <p className="text-sm text-[#8D95A6]">
-                                Mulig månedlig udbetaling
-                              </p>
-                              <p className="mt-2 text-xl font-bold text-[#253457] md:mt-3 md:text-4xl">
-                                {formatCurrency(
-                                  results.improved.estimatedMonthlyPension
-                                )}
-                              </p>
-                            </div>
-                          </div>
+                        <div className="mt-4 rounded-[18px] border border-[#253457]/10 bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white md:rounded-[28px] md:p-6">
+                          <p className="text-sm text-white/75">
+                            Forventet opsparing ved pension
+                          </p>
+                          <p className="mt-2 text-xl font-bold md:mt-3 md:text-4xl">
+                            {formatCurrency(results.improved.futureValue)}
+                          </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:mt-8 md:gap-5">
-                      <StatCard
-                        label="Mulig forskel i opsparing"
-                        value={formatCurrency(results.futureValueDifference)}
-                        tone="primary"
-                      />
-                      <StatCard
-                        label="Mulig forskel pr. måned"
-                        value={formatCurrency(results.monthlyDifference)}
-                        tone="accent"
-                      />
+                    <div className="mt-6 md:mt-8">
                       <StatCard
                         label="Mulig ekstra værdi fra afkast"
                         value={formatCurrency(results.returnDifference)}
-                        tone="default"
+                        tone="primary"
                       />
                     </div>
                   </div>
@@ -934,77 +785,6 @@ export default function Home() {
                             {formatCurrency(results.baseline.futureValue)}
                           </p>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="min-w-0 rounded-[20px] bg-gradient-to-br from-[#253457] to-[#31456F] p-4 text-white shadow-[0_18px_40px_rgba(37,52,87,0.20)] md:rounded-[30px] md:p-6">
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-white/65">
-                        Kort vurdering
-                      </p>
-
-                      <h3 className="mt-2 text-xl font-bold md:mt-3 md:text-3xl">
-                        {results.baseline.rating}
-                      </h3>
-
-                      <p className="mt-4 text-sm leading-7 text-white/82 md:text-base">
-                        {results.baseline.ratingText}
-                      </p>
-
-                      <div className="mt-5 rounded-[18px] border border-white/12 bg-white/8 p-4 md:mt-6 md:rounded-[22px] md:p-5">
-                        <p className="text-sm text-white/70">
-                          Mulig forbedring i samlet opsparing
-                        </p>
-                        <p className="mt-2 text-2xl font-bold md:text-3xl">
-                          {formatCurrency(results.futureValueDifference)}
-                        </p>
-                      </div>
-
-                      <p className="mt-5 text-sm leading-7 text-white/78 md:mt-6">
-                        {results.baseline.teaserText}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] md:gap-6">
-                    <div className="rounded-[22px] border border-[#253457]/10 bg-white p-4 md:rounded-[30px] md:p-6">
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8D95A6]">
-                        Hvad viser sammenligningen?
-                      </p>
-
-                      <h3 className="mt-3 text-2xl font-bold text-[#253457] md:text-3xl">
-                        Den mulige værdi af optimering
-                      </h3>
-
-                      <p className="mt-4 max-w-3xl text-sm leading-7 text-[#5F6D84] md:text-base">
-                        Din nuværende fremskrivning viser en samlet værdi ved
-                        pension på{" "}
-                        <strong className="text-[#253457]">
-                          {formatCurrency(results.baseline.futureValue)}
-                        </strong>
-                        . I det valgte scenarie bliver den potentielle værdi{" "}
-                        <strong className="text-[#253457]">
-                          {formatCurrency(results.improved.futureValue)}
-                        </strong>
-                        . Det svarer til en mulig forskel på{" "}
-                        <strong className="text-[#253457]">
-                          {formatCurrency(results.futureValueDifference)}
-                        </strong>{" "}
-                        frem mod pension.
-                      </p>
-
-                      <div className="mt-5 grid gap-3 sm:grid-cols-3 md:mt-6 md:gap-4">
-                        <InsightCard
-                          title="Omkostninger"
-                          text="Lavere omkostninger kan over tid slå igennem som et højere effektivt nettoafkast."
-                        />
-                        <InsightCard
-                          title="Afkast"
-                          text="Små forbedringer i afkast kan få stor betydning, når de får lov at virke over mange år."
-                        />
-                        <InsightCard
-                          title="Tid"
-                          text="Jo længere tid til pension, desto større bliver effekten af selv små forbedringer."
-                        />
                       </div>
                     </div>
 
