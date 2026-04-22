@@ -486,24 +486,30 @@ export default function Home() {
     }, 150)
   }
 
-  const handleLeadSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+const handleLeadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault()
 
-    if (!name || !email || !results) return
+  if (!name || !email || !results) return
 
-    console.log("Lead captured:", {
+  const response = await fetch("/api/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       name,
       email,
-      age,
-      retirementAge,
-      currentSavings,
-      monthlyContribution,
-      costSaving,
       results,
-    })
+      costSaving,
+    }),
+  })
 
+  if (response.ok) {
     setLeadSubmitted(true)
+  } else {
+    alert("Fejl ved afsendelse")
   }
+}
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] text-[#253457]">
@@ -912,12 +918,11 @@ export default function Home() {
                   Tak
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-[#253457] md:text-3xl">
-                  Din vurdering er registreret
+                  Din vurdering er sendt
                 </h2>
-                <p className="mt-4 text-sm leading-7 text-[#5F6D84] md:text-base">
-                  Næste step er at koble rigtig mailafsendelse på, så brugeren
-                  automatisk modtager vurderingen på mail.
-                </p>
+<p className="mt-4 text-sm leading-7 text-[#5F6D84] md:text-base">
+  Din vurdering er sendt til din mail. Tjek gerne din indbakke og eventuelt din spam-mappe.
+</p>
 
                 <button
                   onClick={() => {
