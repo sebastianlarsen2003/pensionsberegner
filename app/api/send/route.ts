@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const calendlyUrl = "https://calendly.com/DIT-LINK-HER"
 
     const response = await resend.emails.send({
-      from: "RådgiverXperten <onboarding@resend.dev>",
+      from: "RådgiverXperten <info@raadgiverxperten.dk>",
       to: [email],
       subject: "Din vurdering fra RådgiverXperten",
       html: `
