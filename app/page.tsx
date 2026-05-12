@@ -503,7 +503,28 @@ const handleLeadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       costSaving,
     }),
   })
+await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
+  method: "POST",
+  mode: "no-cors",
+  body: JSON.stringify({
+    date: new Date().toISOString(),
+    name: name,
+    email: email,
+costSaving: `${costSaving}%`,
 
+extraValue: `${Math.round(
+  results.returnDifference
+).toLocaleString("da-DK")} DKK`,
+
+baselineValue: `${Math.round(
+  results.baseline.futureValue
+).toLocaleString("da-DK")} DKK`,
+
+improvedValue: `${Math.round(
+  results.improved.futureValue
+).toLocaleString("da-DK")} DKK`,
+  }),
+})
   if (response.ok) {
     setLeadSubmitted(true)
   } else {
