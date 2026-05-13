@@ -510,6 +510,8 @@ await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
     date: new Date().toISOString(),
     name: name,
     email: email,
+    age: age,
+retirementAge: retirementAge,
 costSaving: `${costSaving}%`,
 
 extraValue: `${Math.round(
