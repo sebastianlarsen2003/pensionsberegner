@@ -137,9 +137,11 @@ export default function Home() {
   const [monthlyContribution, setMonthlyContribution] = useState("")
   const [costSaving, setCostSaving] = useState<0.5 | 0.75 | 1>(0.5)
 
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [consent, setConsent] = useState(false)
+const [name, setName] = useState("")
+const [email, setEmail] = useState("")
+const [phone, setPhone] = useState("")
+const [preferredTime, setPreferredTime] = useState("")
+const [consent, setConsent] = useState(false)
 
   const step = steps[currentStep]
   const progress = Math.round(((currentStep + 1) / steps.length) * 100)
@@ -180,7 +182,14 @@ export default function Home() {
   }, [age, retirementAge, currentSavings, monthlyContribution, costSaving])
 
   const canGoNext = step ? Number(getValue(step.id)) > 0 : false
-  const canSubmit = name.trim() && email.trim() && email.includes("@") && consent && results
+  const canSubmit =
+  name.trim() &&
+  email.trim() &&
+  email.includes("@") &&
+  phone.trim() &&
+  preferredTime.trim() &&
+  consent &&
+  results
 
   function getValue(id: StepId) {
     const values = {
@@ -240,11 +249,13 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name,
-        email,
-        results,
-        costSaving,
-      }),
+  name,
+  email,
+  phone,
+  preferredTime,
+  results,
+  costSaving,
+}),
     })
 
     await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
@@ -367,37 +378,102 @@ export default function Home() {
               </div>
             </div>
           </motion.section>
-        ) : submitted ? (
-          <motion.section
-            key="submitted"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.35 }}
-            className="relative z-10 flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-10"
-          >
-            <div className="w-full max-w-xl rounded-[28px] border border-[#253457]/10 bg-white/92 p-8 text-center shadow-[0_18px_55px_rgba(37,52,87,0.07)]">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#ECFDF3]">
-                <Check size={26} className="text-[#027A48]" />
-              </div>
+       ) : submitted ? (
+  <motion.section
+    key="submitted"
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -16 }}
+    transition={{ duration: 0.35 }}
+    className="relative z-10 flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-10"
+  >
+    <div className="w-full max-w-2xl rounded-[30px] border border-[#253457]/10 bg-white/95 p-7 text-center shadow-[0_24px_70px_rgba(37,52,87,0.10)] md:p-10">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#ECFDF3]">
+        <Check size={26} className="text-[#027A48]" />
+      </div>
 
-              <h2 className="text-3xl font-black tracking-[-0.03em] text-[#253457]">
-                Din vurdering er sendt
-              </h2>
+      <p className="text-xs font-black uppercase tracking-[0.24em] text-[#4FB7E7]">
+        Din vurdering er sendt
+      </p>
 
-              <p className="mx-auto mt-4 max-w-md leading-relaxed text-[#667085]">
-                Vi har sendt dit pensionsestimat til din mail. Tjek gerne din
-                indbakke og eventuelt spam-mappen.
-              </p>
+      <h2 className="mx-auto mt-3 max-w-xl text-3xl font-black leading-tight tracking-[-0.04em] text-[#253457] md:text-4xl">
+        Vil du have gennemgået dit resultat?
+      </h2>
 
-              <button
-                onClick={resetFlow}
-                className="mt-7 inline-flex cursor-pointer items-center justify-center rounded-full border border-[#253457]/10 bg-white px-6 py-3 text-sm font-bold text-[#253457] transition hover:bg-[#F8FAFC]"
-              >
-                Start forfra
-              </button>
-            </div>
-          </motion.section>
+      <p className="mx-auto mt-4 max-w-xl text-[1rem] leading-relaxed text-[#5F687A]">
+        Vi har sendt dit pensionsestimat til din mail. Hvis du vil have en kort
+        gennemgang, kan du booke et gratis 10 minutters telefonmøde med
+        RådgiverXperten.
+      </p>
+
+      <div className="mt-6 rounded-[24px] border border-[#4FB7E7]/25 bg-[#EAF7FD] p-5 text-left">
+        <h3 className="text-lg font-black text-[#253457]">
+          Hvem er RådgiverXperten?
+        </h3>
+
+        <p className="mt-2 text-sm leading-relaxed text-[#5F687A]">
+          RådgiverXperten er en uafhængig indgang, der hjælper dig med at få
+          overblik, før du træffer større økonomiske beslutninger. Vi rådgiver
+          ikke selv om din pension, men hjælper med at afklare, om der kan være
+          relevante områder at få gennemgået af en kvalitetssikret rådgiver.
+        </p>
+
+        <p className="mt-3 text-sm leading-relaxed text-[#5F687A]">
+          På mødet kan vi kort gennemgå dit resultat, tale om hvad
+          omkostningerne potentielt kan betyde, og vurdere om det giver mening
+          at undersøge din pensionsløsning nærmere.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-3 text-left sm:grid-cols-3">
+        <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
+          <p className="font-black text-[#253457]">Gratis</p>
+          <p className="mt-1 text-sm leading-relaxed text-[#667085]">
+            Ingen binding eller forpligtelse.
+          </p>
+        </div>
+
+        <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
+          <p className="font-black text-[#253457]">10 minutter</p>
+          <p className="mt-1 text-sm leading-relaxed text-[#667085]">
+            Hurtig afklaring af dit resultat.
+          </p>
+        </div>
+
+        <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
+          <p className="font-black text-[#253457]">Uafhængigt</p>
+          <p className="mt-1 text-sm leading-relaxed text-[#667085]">
+            Vi skaber overblik og matcher videre ved behov.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <a
+          href="https://calendly.com/sebastian-raadgiverxperten/10min"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-full bg-[#253457] px-7 py-3.5 text-sm font-bold text-white no-underline transition hover:bg-[#1D2948]"
+        >
+          <span style={{ color: "#ffffff", fontWeight: 700 }}>
+  Book gratis 10 minutters telefonmøde
+</span>
+        </a>
+
+        <button
+          onClick={resetFlow}
+          className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#253457]/10 bg-white px-7 py-3.5 text-sm font-bold text-[#253457] transition hover:bg-[#F8FAFC]"
+        >
+          Start forfra
+        </button>
+      </div>
+
+      <p className="mx-auto mt-5 max-w-lg text-xs leading-relaxed text-[#8D95A6]">
+        Mødet er vejledende og har til formål at give dig et bedre overblik.
+        Eventuel egentlig pensionsrådgivning sker via relevante samarbejdspartnere.
+      </p>
+    </div>
+  </motion.section>
         ) : showLeadForm ? (
           <motion.section
             key="lead-form"
@@ -453,6 +529,26 @@ export default function Home() {
                     type="email"
                     className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
                   />
+
+<input
+  value={phone}
+  onChange={(e) => setPhone(e.target.value)}
+  placeholder="Telefonnummer"
+  type="tel"
+  className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
+/>
+
+<select
+  value={preferredTime}
+  onChange={(e) => setPreferredTime(e.target.value)}
+  className="w-full cursor-pointer rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold text-[#667085] outline-none transition focus:border-[#4FB7E7]"
+>
+  <option value="">Hvornår passer det bedst at blive ringet op?</option>
+  <option value="Morgen">Morgen</option>
+  <option value="Formiddag">Formiddag</option>
+  <option value="Eftermiddag">Eftermiddag</option>
+  <option value="Aften">Aften</option>
+</select>
 
                   <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
                     <input
@@ -592,7 +688,28 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+<div className="mt-6 rounded-[22px] border border-[#4FB7E7]/25 bg-[#EAF7FD] p-5">
+  <h3 className="text-[1.05rem] font-black text-[#253457]">
+    Har du spørgsmål til resultatet?
+  </h3>
 
+  <p className="mt-2 text-[0.95rem] leading-relaxed text-[#5F687A]">
+    Book et gratis og uforpligtende 10 minutters telefonmøde.
+    Vi gennemgår dit resultat og svarer på eventuelle spørgsmål.
+  </p>
+
+<a
+  href="https://calendly.com/sebastian-raadgiverxperten/10min"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="mt-4 inline-flex items-center justify-center rounded-full bg-[#253457] px-6 py-3 transition hover:bg-[#1D2948]"
+>
+  <span className="text-sm font-bold text-white">
+    Book telefonmøde
+  </span>
+</a>
+
+</div>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => {
@@ -605,6 +722,7 @@ export default function Home() {
                     Få min vurdering sendt
                     <ArrowRight size={18} />
                   </button>
+
 
                   <button
                     onClick={resetFlow}

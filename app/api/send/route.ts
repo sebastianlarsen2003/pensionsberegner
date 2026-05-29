@@ -5,7 +5,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { name, email, results, costSaving } = body
+    const {
+  name,
+  email,
+  phone,
+  preferredTime,
+  results,
+  costSaving,
+} = body
 
     const baselineValue = Number(results.baseline.futureValue).toLocaleString("da-DK")
     const improvedValue = Number(results.improved.futureValue).toLocaleString("da-DK")
@@ -26,7 +33,8 @@ export async function POST(req: Request) {
         "Det er en væsentlig potentiel forskel, som understreger hvor meget omkostninger og struktur kan betyde over en længere årrække."
     }
 
-    const calendlyUrl = "https://calendly.com/DIT-LINK-HER"
+    const calendlyUrl =
+  "https://calendly.com/sebastian-raadgiverxperten/10min"
 
     const response = await resend.emails.send({
       from: "RådgiverXperten <info@raadgiverxperten.dk>",
