@@ -96,6 +96,8 @@ export default function Home() {
   const [hasCalculated, setHasCalculated] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [startedCalculatorTracked, setStartedCalculatorTracked] = useState(false)
+const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -308,6 +310,13 @@ export default function Home() {
             <input
               value={age}
               onChange={(e) => setAge(e.target.value)}
+              onFocus={() => {
+  if (!startedCalculatorTracked) {
+    setStartedCalculatorTracked(true)
+    track("Started Calculator")
+    window.fbq?.("trackCustom", "StartedCalculator")
+  }
+}}
               placeholder="Din alder, fx 35"
               type="number"
               className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition placeholder:text-[#A0A8B8] focus:border-[#4FB7E7]"
@@ -593,6 +602,13 @@ export default function Home() {
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      onFocus={() => {
+  if (!startedLeadFormTracked) {
+    setStartedLeadFormTracked(true)
+    track("Started Lead Form")
+    window.fbq?.("trackCustom", "StartedLeadForm")
+  }
+}}
                       placeholder="Navn"
                       className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
                     />
