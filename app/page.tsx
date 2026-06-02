@@ -159,7 +159,13 @@ export default function Home() {
     setSubmitted(false)
 
     track("Calculated Pension Result")
-    window.fbq?.("trackCustom", "CalculatedPension")
+    window.fbq?.("trackCustom", "CalculatedPension", {
+  age,
+  retirementAge,
+  currentSavings,
+  monthlyContribution,
+  costSaving,
+})
 
     setTimeout(() => {
       resultRef.current?.scrollIntoView({
@@ -208,6 +214,10 @@ export default function Home() {
       setShowLeadForm(false)
 
       track("Submitted Pension Lead")
+      window.fbq?.("track", "Lead", {
+  content_name: "Pensionsberegner",
+  lead_type: "Pension",
+})
       window.fbq?.("track", "Lead")
     } else {
       alert("Der opstod en fejl ved afsendelse.")
@@ -445,15 +455,19 @@ export default function Home() {
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <a
-                  href={CALENDLY_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-full bg-[#253457] px-7 py-3.5 text-sm font-bold no-underline transition hover:bg-[#1D2948]"
-                >
-                  <span style={{ color: "#ffffff", fontWeight: 700 }}>
-                    Book gratis 10 minutters telefonmøde
-                  </span>
-                </a>
+  href={CALENDLY_URL}
+  onClick={() => {
+    track("Book Meeting Click")
+    window.fbq?.("trackCustom", "BookMeetingClick")
+  }}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-flex items-center justify-center rounded-full bg-[#253457] px-7 py-3.5 text-sm font-bold transition hover:bg-[#1D2948]"
+>
+  <span style={{ color: "#ffffff", fontWeight: 700 }}>
+    Book gratis 10 minutters telefonmøde
+  </span>
+</a>
 
                 <button
                   onClick={resetFlow}
@@ -535,6 +549,7 @@ export default function Home() {
                       onClick={() => {
                         setShowLeadForm(true)
                         track("Opened Pension Lead Form")
+                        window.fbq?.("trackCustom", "OpenedLeadForm")
                         window.fbq?.("track", "Contact")
                       }}
                       className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#253457] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1D2948]"
