@@ -258,7 +258,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
       <section className="relative z-10 mx-auto grid min-h-[calc(100vh-64px)] max-w-7xl items-center gap-8 px-4 py-8 md:min-h-[calc(100vh-80px)] md:grid-cols-[1fr_0.9fr] md:px-10 md:py-14">
         <div>
           <p className="mb-5 text-xs font-black uppercase tracking-[0.3em] text-[#4FB7E7] md:text-sm">
-            Gratis pensionscheck
+            Gratis pensionstjek
           </p>
 
           <h1 className="max-w-3xl text-[2.25rem] font-black leading-[1.02] tracking-[-0.045em] text-[#253457] sm:text-[3rem] md:text-[4rem]">
@@ -281,7 +281,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
             <div className="flex items-center gap-2 rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 shadow-sm">
               <TrendingUp size={17} className="text-[#4FB7E7]" />
-              Personligt estimat
+              Personlig optimering
             </div>
 
             <div className="flex items-center gap-2 rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 shadow-sm">
@@ -294,7 +294,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
         <div className="rounded-[28px] border border-[#253457]/10 bg-white/92 p-5 shadow-[0_18px_55px_rgba(37,52,87,0.08)] backdrop-blur md:p-7">
           <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#4FB7E7]">
-              Beregn dit estimat
+              Beregn min optimering
             </p>
 
             <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457]">
@@ -378,7 +378,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
                   : "cursor-not-allowed bg-[#D7DEE8] text-white"
               }`}
             >
-              Se mit estimat
+              Se min mulige optimering
               <ArrowRight size={18} />
             </button>
 
@@ -415,9 +415,9 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
               </h2>
 
               <p className="mx-auto mt-4 max-w-xl text-[1rem] leading-relaxed text-[#5F687A]">
-                Vi har sendt dit pensionsestimat til din mail. Hvis du vil have
+                Vi har sendt din mulige pensionsoptimering til din mail. Hvis du vil have
                 en kort gennemgang, kan du booke et gratis og uforpligtende
-                telefonmøde med RådgiverXperten.
+                telefonmøde med RådgiverXperten. Tjek evt. spam for mail.
               </p>
 
               <div className="mt-6 rounded-[24px] border border-[#4FB7E7]/25 bg-[#EAF7FD] p-5 text-left">
@@ -474,7 +474,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
   className="inline-flex items-center justify-center rounded-full bg-[#253457] px-7 py-3.5 text-sm font-bold transition hover:bg-[#1D2948]"
 >
   <span style={{ color: "#ffffff", fontWeight: 700 }}>
-    Book gratis 10 minutters telefonmøde
+    Ring mig op 
   </span>
 </a>
 
@@ -563,7 +563,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
                       }}
                       className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#253457] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1D2948]"
                     >
-                      Få min vurdering sendt gratis
+                      Send mig min mulige optimering!
                       <ArrowRight size={18} />
                     </button>
 
@@ -588,7 +588,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
                       </p>
 
                       <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457] md:text-3xl">
-                        Få din vurdering sendt
+                        Send mig min mulige optimering!
                       </h2>
 
                       <p className="mt-3 text-sm leading-relaxed text-[#667085]">
@@ -654,7 +654,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
                           : "cursor-not-allowed bg-[#D7DEE8] text-white"
                       }`}
                     >
-                      Send min pensionsvurdering
+                      Send mig min mulige optimering!
                       <ArrowRight size={18} />
                     </button>
                   </div>
