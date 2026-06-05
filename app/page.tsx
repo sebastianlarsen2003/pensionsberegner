@@ -495,11 +495,11 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
           ) : (
             <div className="space-y-5">
               <div className="rounded-[30px] border border-[#253457]/10 bg-white/95 p-6 shadow-[0_24px_70px_rgba(37,52,87,0.09)] md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-[#4FB7E7]">
-                  Dit pensionsoverblik
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-[#0F8A43]">
+                  Din mulige pensionsoptimering
                 </p>
 
-                <h2 className="mt-4 text-[2.3rem] font-black leading-none tracking-[-0.04em] text-[#253457] md:text-[3.4rem]">
+                <h2 className="mt-4 text-[2.3rem] font-black leading-none tracking-[-0.04em] text-[#0F8A43]">
                   {formatCurrency(results.returnDifference)}
                 </h2>
 
