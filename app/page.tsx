@@ -541,7 +541,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
                 <div className="mt-5 rounded-[22px] border border-[#253457]/10 bg-[#FBFCFD] p-5">
                   <h3 className="font-black text-[#253457]">
-                    Man kan da ikke bare trylle {formatCurrency(results.improved.futureValue)} frem?
+                    Man kan da ikke bare "trylle" {formatCurrency(results.returnDifference)} frem?
             
                   </h3>
 
