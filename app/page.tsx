@@ -348,7 +348,7 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
             <div className="rounded-[18px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
               <p className="mb-3 text-sm font-black text-[#253457]">
-                Hvis dine omkostninger kunne sænkes med:
+                Hvad vil det betyde for din pension, hvis dine omkostninger kunne sænkes med:
               </p>
 
               <div className="grid grid-cols-3 gap-2">
