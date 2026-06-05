@@ -541,12 +541,14 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
                 <div className="mt-5 rounded-[22px] border border-[#253457]/10 bg-[#FBFCFD] p-5">
                   <h3 className="font-black text-[#253457]">
-                    Hvorfor kan det få betydning?
+                    Man kan da ikke bare trylle {formatCurrency(results.improved.futureValue)} frem?
+            
                   </h3>
 
                   <p className="mt-2 text-sm leading-relaxed text-[#667085]">
-                    Små forskelle i omkostninger kan vokse markant over tid,
-                    især når der er mange år til pension. Derfor kan det være
+                    Små forskelle i omkostninger kan vokse markant over tid. De fleste folk ved godt, at det 
+                    det kan være dyrt i omkostninger og, at de hurtigt kan vokse sig store over tid. Det 
+                    er bare de færreste som når at gøre noget ved det. Derfor er det, for de fleste, meget
                     relevant at få gennemgået, om din nuværende løsning er sat
                     fornuftigt sammen.
                   </p>
