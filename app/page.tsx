@@ -1,17 +1,16 @@
 "use client"
 
 import { track } from "@vercel/analytics"
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, useEffect } from "react"
 import {
   ArrowRight,
   Check,
   Clock3,
-  Mail,
   Phone,
-  RefreshCcw,
   ShieldCheck,
   TrendingUp,
-  Wallet,
+  Network,
+  ChevronDown,
 } from "lucide-react"
 
 declare global {
@@ -31,7 +30,7 @@ type SimulationResult = {
 const CALENDLY_URL = "https://calendly.com/sebastian-raadgiverxperten/10min"
 
 function formatCurrency(value: number) {
-  return `${Math.round(value).toLocaleString("da-DK")} DKK`
+  return `${Math.round(value).toLocaleString("da-DK")} kr.`
 }
 
 function calculatePensionScenario({
@@ -47,41 +46,44 @@ function calculatePensionScenario({
   monthlyContribution: number
   annualReturn: number
 }): SimulationResult | null {
-  if (
-    !age ||
-    !retirementAge ||
-    currentSavings < 0 ||
-    monthlyContribution < 0 ||
-    retirementAge <= age
-  ) {
+  if (!age || !retirementAge || currentSavings < 0 || monthlyContribution < 0 || retirementAge <= age) {
     return null
   }
-
   const yearsToRetirement = retirementAge - age
   const monthlyReturn = annualReturn / 12
   const totalMonths = yearsToRetirement * 12
-
   let totalValue = currentSavings
   let totalPaidIn = currentSavings
-
   for (let month = 1; month <= totalMonths; month++) {
     totalValue += monthlyContribution
     totalPaidIn += monthlyContribution
     totalValue *= 1 + monthlyReturn
   }
-
   const futureValue = Math.round(totalValue)
   const totalOwnContributions = Math.round(totalPaidIn)
   const estimatedReturn = Math.max(0, Math.round(futureValue - totalOwnContributions))
   const estimatedMonthlyPension = Math.round(futureValue / (20 * 12))
+  return { yearsToRetirement, futureValue, totalOwnContributions, estimatedReturn, estimatedMonthlyPension }
+}
 
-  return {
-    yearsToRetirement,
-    futureValue,
-    totalOwnContributions,
-    estimatedReturn,
-    estimatedMonthlyPension,
-  }
+function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: number }) {
+  const [displayed, setDisplayed] = useState(0)
+
+  useEffect(() => {
+    let startTime: number | null = null
+    let frame: number
+    function step(timestamp: number) {
+      if (!startTime) startTime = timestamp
+      const progress = Math.min((timestamp - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplayed(Math.round(value * eased))
+      if (progress < 1) frame = requestAnimationFrame(step)
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [value, duration])
+
+  return <>{displayed.toLocaleString("da-DK")} kr.</>
 }
 
 export default function Home() {
@@ -94,49 +96,25 @@ export default function Home() {
   const [costSaving, setCostSaving] = useState<0.5 | 0.75 | 1>(0.5)
 
   const [hasCalculated, setHasCalculated] = useState(false)
-  const [showLeadForm, setShowLeadForm] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [startedCalculatorTracked, setStartedCalculatorTracked] = useState(false)
-const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
 
   const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [consent, setConsent] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const results = useMemo(() => {
     const currentAge = Number(age)
     const pensionAge = Number(retirementAge)
     const savings = Number(currentSavings)
     const monthly = Number(monthlyContribution)
-
     const baselineReturn = 0.05
-
-    const baseline = calculatePensionScenario({
-      age: currentAge,
-      retirementAge: pensionAge,
-      currentSavings: savings,
-      monthlyContribution: monthly,
-      annualReturn: baselineReturn,
-    })
-
+    const baseline = calculatePensionScenario({ age: currentAge, retirementAge: pensionAge, currentSavings: savings, monthlyContribution: monthly, annualReturn: baselineReturn })
     if (!baseline) return null
-
-    const improved = calculatePensionScenario({
-      age: currentAge,
-      retirementAge: pensionAge,
-      currentSavings: savings,
-      monthlyContribution: monthly,
-      annualReturn: baselineReturn + costSaving / 100,
-    })
-
+    const improved = calculatePensionScenario({ age: currentAge, retirementAge: pensionAge, currentSavings: savings, monthlyContribution: monthly, annualReturn: baselineReturn + costSaving / 100 })
     if (!improved) return null
-
-    return {
-      baseline,
-      improved,
-      returnDifference: improved.estimatedReturn - baseline.estimatedReturn,
-    }
+    return { baseline, improved, returnDifference: improved.estimatedReturn - baseline.estimatedReturn }
   }, [age, retirementAge, currentSavings, monthlyContribution, costSaving])
 
   const canCalculate =
@@ -147,524 +125,454 @@ const [startedLeadFormTracked, setStartedLeadFormTracked] = useState(false)
     currentSavings !== "" &&
     monthlyContribution !== ""
 
-  const canSubmit =
-    !!results &&
-    name.trim() &&
-    email.trim() &&
-    email.includes("@") &&
-    phone.trim() &&
-    consent
+  const canSubmit = !!results && name.trim() !== "" && phone.trim() !== "" && consent
 
   function handleCalculate() {
     setHasCalculated(true)
-    setShowLeadForm(false)
     setSubmitted(false)
-
     track("Calculated Pension Result")
-    window.fbq?.("trackCustom", "CalculatedPension", {
-  age,
-  retirementAge,
-  currentSavings,
-  monthlyContribution,
-  costSaving,
-})
-
+    window.fbq?.("trackCustom", "CalculatedPension", { age, retirementAge, currentSavings, monthlyContribution, costSaving })
     setTimeout(() => {
-      resultRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      })
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     }, 150)
   }
 
   async function handleLeadSubmit() {
-    if (!canSubmit || !results) return
-
-    const response = await fetch("/api/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        phone,
-        results,
-        costSaving,
-      }),
-    })
-
-    await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        date: new Date().toISOString(),
-        name,
-        email,
-        phone,
-        age,
-        retirementAge,
-        costSaving: `${String(costSaving).replace(".", ",")}%`,
-        extraValue: `${Math.round(results.returnDifference).toLocaleString("da-DK")} DKK`,
-        baselineValue: `${Math.round(results.baseline.futureValue).toLocaleString("da-DK")} DKK`,
-        improvedValue: `${Math.round(results.improved.futureValue).toLocaleString("da-DK")} DKK`,
-      }),
-    })
-
-    if (response.ok) {
+    if (!canSubmit || !results || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, results, costSaving }),
+      })
+      await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          date: new Date().toISOString(),
+          name, phone, age, retirementAge,
+          costSaving: `${String(costSaving).replace(".", ",")}%`,
+          extraValue: `${Math.round(results.returnDifference).toLocaleString("da-DK")} kr.`,
+          baselineValue: `${Math.round(results.baseline.futureValue).toLocaleString("da-DK")} kr.`,
+          improvedValue: `${Math.round(results.improved.futureValue).toLocaleString("da-DK")} kr.`,
+        }),
+      })
       setSubmitted(true)
-      setShowLeadForm(false)
-
       track("Submitted Pension Lead")
-      window.fbq?.("track", "Lead", {
-  content_name: "Pensionsberegner",
-  lead_type: "Pension",
-})
+      window.fbq?.("track", "Lead", { content_name: "Pensionsberegner", lead_type: "Pension" })
       window.fbq?.("track", "Lead")
-    } else {
-      alert("Der opstod en fejl ved afsendelse.")
+    } catch {
+      alert("Der opstod en fejl. Prøv igen.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  function resetFlow() {
-    setHasCalculated(false)
-    setShowLeadForm(false)
-    setSubmitted(false)
-    setName("")
-    setEmail("")
-    setPhone("")
-    setConsent(false)
-  }
-
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F4FAFA] text-[#253457]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(79,183,231,0.18),transparent_34%),linear-gradient(180deg,#F8FCFC_0%,#EEF8F8_100%)]" />
+    <main className="min-h-screen bg-[#F4FAFA] text-[#253457]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .fade-in { animation: fadeIn 0.45s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-dot { animation: pulseDot 2s infinite; }
+        @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.4)} }
+      `}</style>
 
-      <header className="relative z-10 border-b border-[#253457]/10 bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:h-20 md:px-10">
-          <img
-            src="/logo.svg"
-            alt="RådgiverXperten"
-            className="block h-auto w-[155px] max-w-[155px] object-contain md:w-[220px] md:max-w-[220px]"
-          />
-
-          <div className="hidden items-center gap-2 rounded-full border border-[#253457]/10 bg-white px-4 py-2 text-sm font-bold text-[#667085] sm:flex">
-            <Clock3 size={16} className="text-[#4FB7E7]" />
-            Under 1 minut
-          </div>
+      {/* ── HEADER ── */}
+      <header className="sticky top-0 z-50 border-b border-[#253457]/10 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-8">
+          <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[130px] object-contain md:w-[170px]" />
+          <a
+            href="#beregner"
+            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2 text-xs font-bold text-white md:px-5 md:py-2.5"
+          >
+            <Clock3 size={12} />
+            Gratis tjek
+          </a>
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto grid min-h-[calc(100vh-64px)] max-w-7xl items-center gap-8 px-4 py-8 md:min-h-[calc(100vh-80px)] md:grid-cols-[1fr_0.9fr] md:px-10 md:py-14">
-        <div>
-          <p className="mb-5 text-xs font-black uppercase tracking-[0.3em] text-[#4FB7E7] md:text-sm">
-            Gratis pensionstjek
-          </p>
+      {/* ── HERO ── */}
+      <section className="mx-auto max-w-5xl px-4 pb-6 pt-10 md:px-8 md:pt-16 md:pb-10">
+        {/* Trust badge */}
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#4FB7E7]/30 bg-[#4FB7E7]/10 px-3 py-1.5 text-[11px] font-bold text-[#253457]">
+          <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-[#4FB7E7]" />
+          Gratis og uforpligtende pensionstjek
+        </div>
 
-          <h1 className="max-w-3xl text-[2.25rem] font-black leading-[1.02] tracking-[-0.045em] text-[#253457] sm:text-[3rem] md:text-[4rem]">
-            Hvad kan lavere{" "}
-            <span className="text-[#4FB7E7]">omkostninger</span> betyde for din
-            pension?
-          </h1>
+        {/* Headline + Sebastian grid */}
+        <div className="grid gap-6 md:grid-cols-[1fr_220px] md:items-start">
+          <div>
+            <h1 className="text-[2rem] font-black leading-[1.06] tracking-[-0.03em] text-[#253457] sm:text-[2.6rem] md:text-[3.2rem]">
+              Betaler du for meget{" "}
+              <span className="text-[#4FB7E7]">i pension?</span>
+            </h1>
+            <p className="mt-4 max-w-lg text-[0.95rem] leading-relaxed text-[#5F687A] md:text-[1.05rem]">
+              De fleste danskere betaler for høje omkostninger på deres pension — og ved det ikke.
+              Beregn på 60 sekunder, hvad det potentielt koster dig over tid.
+            </p>
 
-          <p className="mt-5 max-w-2xl text-[1rem] leading-relaxed text-[#5F687A] md:text-[1.15rem]">
-            Få et vejledende estimat på under 1 minut. Indtast dine oplysninger
-            og se, hvordan små forskelle i omkostninger potentielt kan få stor
-            betydning over tid.
-          </p>
-
-          <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[#667085]">
-            <div className="flex items-center gap-2 rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 shadow-sm">
-              <ShieldCheck size={17} className="text-[#4FB7E7]" />
-              Vejledende
+            {/* Trust signals */}
+            <div className="mt-5 flex flex-wrap gap-2 md:gap-3">
+              {[
+                { icon: <ShieldCheck size={14} className="text-[#4FB7E7]" />, label: "Kvalitetssikret rådgivernetværk" },
+                { icon: <Check size={14} className="text-[#4FB7E7]" />, label: "Uafhængig rådgivning" },
+                { icon: <Check size={14} className="text-[#4FB7E7]" />, label: "Ingen binding eller forpligtelse" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-1.5 rounded-full border border-[#253457]/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5F687A] shadow-sm md:px-4 md:py-2 md:text-xs"
+                >
+                  {item.icon}
+                  {item.label}
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 shadow-sm">
-              <TrendingUp size={17} className="text-[#4FB7E7]" />
-              Personlig optimering
+          {/* Sebastian card — stacked under headline on mobile */}
+          <div className="rounded-[20px] overflow-hidden border border-[#253457]/10 bg-white shadow-[0_8px_32px_rgba(37,52,87,0.08)]">
+            <div className="relative h-[220px] overflow-hidden bg-gradient-to-br from-[#c8d8e8] to-[#9ab8cc]">
+              <img
+                src="/Seb1.jpg"
+                alt="Sebastian – Klient- og Partneransvarlig"
+                className="absolute inset-0 h-full w-full object-cover object-top"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#253457]/70 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                <p className="text-[15px] font-black tracking-tight">Sebastian</p>
+                <p className="text-[11px] text-white/75">Klient- og Partneransvarlig</p>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2 rounded-full border border-[#253457]/10 bg-white/80 px-4 py-2 shadow-sm">
-              <Check size={17} className="text-[#4FB7E7]" />
-              Uforpligtende
+            <div className="border-t border-[#253457]/8 bg-[#FAFCFC] px-4 py-3">
+              <p className="text-[11px] italic leading-relaxed text-[#5F687A]">
+                "De fleste ved godt, at pension kan være dyrt i omkostninger.
+                De færreste når at gøre noget ved det."
+              </p>
+              <p className="mt-1.5 text-[10px] font-bold text-[#8D95A6]">— Sebastian, RådgiverXperten</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[#253457]/10 bg-white/92 p-5 shadow-[0_18px_55px_rgba(37,52,87,0.08)] backdrop-blur md:p-7">
-          <div className="mb-5">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#4FB7E7]">
-              Beregn min optimering
-            </p>
-
-            <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457]">
-              Indtast dine oplysninger
-            </h2>
-
-            <p className="mt-2 text-sm leading-relaxed text-[#667085]">
-              Alle felter udfyldes direkte her. Ingen unødvendige steps.
-            </p>
-          </div>
-
-          <div className="space-y-3.5">
-            <input
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              onFocus={() => {
-  if (!startedCalculatorTracked) {
-    setStartedCalculatorTracked(true)
-    track("Started Calculator")
-    window.fbq?.("trackCustom", "StartedCalculator")
-  }
-}}
-              placeholder="Din alder, fx 35"
-              type="number"
-              className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition placeholder:text-[#A0A8B8] focus:border-[#4FB7E7]"
-            />
-
-            <input
-              value={retirementAge}
-              onChange={(e) => setRetirementAge(e.target.value)}
-              placeholder="Forventet pensionsalder, fx 67"
-              type="number"
-              className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition placeholder:text-[#A0A8B8] focus:border-[#4FB7E7]"
-            />
-
-            <input
-              value={currentSavings}
-              onChange={(e) => setCurrentSavings(e.target.value)}
-              placeholder="Opsparet pension i dag, fx 450000"
-              type="number"
-              className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition placeholder:text-[#A0A8B8] focus:border-[#4FB7E7]"
-            />
-
-            <input
-              value={monthlyContribution}
-              onChange={(e) => setMonthlyContribution(e.target.value)}
-              placeholder="Månedlig indbetaling, fx 3500"
-              type="number"
-              className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition placeholder:text-[#A0A8B8] focus:border-[#4FB7E7]"
-            />
-
-            <div className="rounded-[18px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
-              <p className="mb-3 text-sm font-black text-[#253457]">
-                Hvad vil det betyde for din pension, hvis dine omkostninger kunne sænkes med:
-              </p>
-
-              <div className="grid grid-cols-3 gap-2">
-                {([0.5, 0.75, 1] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setCostSaving(value)}
-                    className={`rounded-full border px-4 py-3 text-sm font-black transition ${
-                      costSaving === value
-                        ? "border-[#4FB7E7] bg-[#EAF7FD] text-[#253457]"
-                        : "border-[#253457]/10 bg-white text-[#667085]"
-                    }`}
-                  >
-                    {String(value).replace(".", ",")}%
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleCalculate}
-              disabled={!canCalculate}
-              className={`inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm font-bold transition ${
-                canCalculate
-                  ? "cursor-pointer bg-[#253457] text-white hover:bg-[#1D2948]"
-                  : "cursor-not-allowed bg-[#D7DEE8] text-white"
-              }`}
-            >
-              Se min mulige optimering
-              <ArrowRight size={18} />
-            </button>
-
-            <p className="text-center text-xs leading-relaxed text-[#8D95A6]">
-              Beregningen er vejledende, før skat, og erstatter ikke individuel
-              finansiel rådgivning.
-            </p>
-          </div>
+        {/* Scroll cue */}
+        <div className="mt-8 flex justify-center md:mt-10">
+          <a href="#beregner" className="flex flex-col items-center gap-1 text-[11px] text-[#8D95A6] hover:text-[#5F687A] transition-colors">
+            Beregn din optimering
+            <ChevronDown size={16} className="animate-bounce" />
+          </a>
         </div>
       </section>
 
-      {hasCalculated && (
-        <section
-          ref={resultRef}
-          className="relative z-10 mx-auto max-w-4xl px-4 pb-14 md:px-10"
-        >
-          {!results ? (
-            <div className="rounded-[24px] border border-[#FEC84B]/40 bg-[#FFFCF2] p-5 text-[#253457]">
-              Tjek at alle felter er udfyldt korrekt, og at pensionsalderen er
-              højere end din nuværende alder.
-            </div>
-          ) : submitted ? (
-            <div className="rounded-[30px] border border-[#253457]/10 bg-white/95 p-7 text-center shadow-[0_24px_70px_rgba(37,52,87,0.10)] md:p-10">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#ECFDF3]">
-                <Check size={26} className="text-[#027A48]" />
+      {/* ── CALCULATOR ── */}
+      <section id="beregner" className="mx-auto max-w-5xl px-4 pb-16 md:px-8">
+        <div className="grid gap-5 md:grid-cols-2 md:items-start">
+
+          {/* Left: form */}
+          <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_24px_rgba(37,52,87,0.07)] md:p-7">
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">Trin 1 — Beregn</p>
+            <h2 className="text-xl font-black tracking-tight text-[#253457] md:text-2xl">Hvad mister du i dag?</h2>
+            <p className="mt-1 mb-5 text-xs text-[#8D95A6]">Udfyld felterne — beregningen tager under 60 sekunder.</p>
+
+            <div className="space-y-3">
+              {/* Age */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Din alder</label>
+                <input
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  onFocus={() => {
+                    if (!startedCalculatorTracked) {
+                      setStartedCalculatorTracked(true)
+                      track("Started Calculator")
+                      window.fbq?.("trackCustom", "StartedCalculator")
+                    }
+                  }}
+                  placeholder="fx 42"
+                  type="number"
+                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
+                />
               </div>
 
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-[#4FB7E7]">
-                Din vurdering er sendt
-              </p>
-
-              <h2 className="mx-auto mt-3 max-w-xl text-3xl font-black leading-tight tracking-[-0.04em] text-[#253457] md:text-4xl">
-                Vil du have gennemgået dit resultat?
-              </h2>
-
-              <p className="mx-auto mt-4 max-w-xl text-[1rem] leading-relaxed text-[#5F687A]">
-                Vi har sendt din mulige pensionsoptimering til din mail. Hvis du vil have
-                en kort gennemgang, kan du booke et gratis og uforpligtende
-                telefonmøde med RådgiverXperten. Tjek evt. spam for mail.
-              </p>
-
-              <div className="mt-6 rounded-[24px] border border-[#4FB7E7]/25 bg-[#EAF7FD] p-5 text-left">
-                <h3 className="text-lg font-black text-[#253457]">
-                  Hvem er RådgiverXperten?
-                </h3>
-
-                <p className="mt-2 text-sm leading-relaxed text-[#5F687A]">
-                  RådgiverXperten hjælper dig med at få overblik, før du træffer
-                  større økonomiske beslutninger. Vi fungerer som en uafhængig
-                  indgang og kan hjælpe med at afklare, om der kan være relevante
-                  områder at få gennemgået af en kvalitetssikret rådgiver.
-                </p>
-
-                <p className="mt-3 text-sm leading-relaxed text-[#5F687A]">
-                  På mødet kan vi kort gennemgå dit resultat, tale om hvad lavere
-                  omkostninger potentielt kan betyde, og vurdere om det giver
-                  mening at undersøge din pensionsløsning nærmere.
-                </p>
+              {/* Retirement age */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Pensionsalder</label>
+                <input
+                  value={retirementAge}
+                  onChange={(e) => setRetirementAge(e.target.value)}
+                  placeholder="fx 67"
+                  type="number"
+                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
+                />
               </div>
 
-              <div className="mt-6 grid gap-3 text-left sm:grid-cols-3">
-                <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
-                  <p className="font-black text-[#253457]">Gratis</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#667085]">
-                    Ingen binding eller forpligtelse.
-                  </p>
-                </div>
-
-                <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
-                  <p className="font-black text-[#253457]">10 minutter</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#667085]">
-                    Hurtig afklaring af dit resultat.
-                  </p>
-                </div>
-
-                <div className="rounded-[20px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
-                  <p className="font-black text-[#253457]">Uforpligtende</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#667085]">
-                    Vi skaber overblik og matcher videre ved behov.
-                  </p>
-                </div>
+              {/* Savings */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Opsparet pension i dag (kr.)</label>
+                <input
+                  value={currentSavings}
+                  onChange={(e) => setCurrentSavings(e.target.value)}
+                  placeholder="fx 450.000"
+                  type="number"
+                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
+                />
               </div>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <a
-  href={CALENDLY_URL}
-  onClick={() => {
-    track("Book Meeting Click")
-    window.fbq?.("trackCustom", "BookMeetingClick")
-  }}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="inline-flex items-center justify-center rounded-full bg-[#253457] px-7 py-3.5 text-sm font-bold transition hover:bg-[#1D2948]"
->
-  <span style={{ color: "#ffffff", fontWeight: 700 }}>
-    Ring mig op 
-  </span>
-</a>
-
-                <button
-                  onClick={resetFlow}
-                  className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#253457]/10 bg-white px-7 py-3.5 text-sm font-bold text-[#253457] transition hover:bg-[#F8FAFC]"
-                >
-                  Start forfra
-                </button>
+              {/* Monthly */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Månedlig indbetaling (kr.)</label>
+                <input
+                  value={monthlyContribution}
+                  onChange={(e) => setMonthlyContribution(e.target.value)}
+                  placeholder="fx 3.500"
+                  type="number"
+                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
+                />
               </div>
 
-              <p className="mx-auto mt-5 max-w-lg text-xs leading-relaxed text-[#8D95A6]">
-                Mødet er vejledende og har til formål at give dig et bedre
-                overblik. Eventuel egentlig pensionsrådgivning sker via relevante
-                samarbejdspartnere.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <div className="rounded-[30px] border border-[#253457]/10 bg-white/95 p-6 shadow-[0_24px_70px_rgba(37,52,87,0.09)] md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-[#0F8A43]">
-                  Din mulige pensionsoptimering
+              {/* Cost saving toggle */}
+              <div className="rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.15em] text-[#5F687A]">
+                  Hvad hvis omkostninger sænkes med:
                 </p>
-
-                <h2 className="mt-4 text-[2.3rem] font-black leading-none tracking-[-0.04em] text-[#0F8A43]">
-                  {formatCurrency(results.returnDifference)}
-                </h2>
-
-                <p className="mt-4 max-w-xl text-[1rem] font-semibold leading-relaxed text-[#253457] md:text-[1.08rem]">
-                  Det er den mulige ekstra værdi fra afkast, hvis omkostningerne
-                  reduceres med {String(costSaving).replace(".", ",")}% i dit
-                  valgte scenarie.
-                </p>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[22px] border border-[#253457]/10 bg-[#FBFCFD] p-5">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF7FD]">
-                      <Wallet size={19} className="text-[#4FB7E7]" />
-                    </div>
-
-                    <p className="text-sm font-bold text-[#8D95A6]">
-                      Sådan ser det ud nu
-                    </p>
-
-                    <p className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457]">
-                      {formatCurrency(results.baseline.futureValue)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-[22px] border border-[#4FB7E7]/25 bg-[#EAF7FD] p-5">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white">
-                      <TrendingUp size={19} className="text-[#4FB7E7]" />
-                    </div>
-
-                    <p className="text-sm font-bold text-[#5F687A]">
-                      Hvis omkostninger reduceres
-                    </p>
-
-                    <p className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457]">
-                      {formatCurrency(results.improved.futureValue)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 rounded-[22px] border border-[#253457]/10 bg-[#FBFCFD] p-5">
-                  <h3 className="font-black text-[#253457]">
-                    Man kan da ikke bare "trylle" {formatCurrency(results.returnDifference)} frem?
-            
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-relaxed text-[#667085]">
-                    Nej, det kan man absolut ikke. Men små forskelle i omkostninger kan vokse markant over tid. De fleste folk ved godt, at det 
-                    det kan være dyrt i omkostninger og, at de hurtigt kan vokse sig store over tid. Det 
-                    er bare de færreste som når at gøre noget ved det. Derfor er det, for de fleste, meget
-                    relevant at få gennemgået, om din nuværende løsning er sat
-                    fornuftigt sammen. 
-                  </p>
-                </div>
-
-                {!showLeadForm && (
-                  <div className="mt-6">
+                <div className="grid grid-cols-3 gap-2">
+                  {([0.5, 0.75, 1] as const).map((value) => (
                     <button
-                      onClick={() => {
-                        setShowLeadForm(true)
-                        track("Opened Pension Lead Form")
-                        window.fbq?.("trackCustom", "OpenedLeadForm")
-                        window.fbq?.("track", "Contact")
-                      }}
-                      className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#253457] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1D2948]"
+                      key={value}
+                      type="button"
+                      onClick={() => setCostSaving(value)}
+                      className={`rounded-full border py-3 text-sm font-black transition ${
+                        costSaving === value
+                          ? "border-[#4FB7E7] bg-[#EAF7FD] text-[#253457]"
+                          : "border-[#253457]/10 bg-white text-[#8D95A6] hover:border-[#253457]/25"
+                      }`}
                     >
-                      Send mig min mulige optimering!
-                      <ArrowRight size={18} />
+                      {String(value).replace(".", ",")}%
                     </button>
-
-                    <p className="mt-3 text-center text-xs leading-relaxed text-[#8D95A6]">
-                      Gratis og uforpligtende. Vi bruger kun oplysningerne til at
-                      sende din vurdering og kontakte dig om resultatet.
-                    </p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
 
-              {showLeadForm && (
-                <div className="rounded-[28px] border border-[#253457]/10 bg-white/95 p-6 shadow-[0_18px_55px_rgba(37,52,87,0.07)] md:p-8">
-                  <div className="mb-6 flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EAF7FD]">
-                      <Mail size={21} className="text-[#4FB7E7]" />
+              <button
+                onClick={handleCalculate}
+                disabled={!canCalculate}
+                className={`flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-bold transition ${
+                  canCalculate
+                    ? "bg-[#253457] text-white hover:bg-[#1D2948] active:scale-[0.98]"
+                    : "cursor-not-allowed bg-[#D7DEE8] text-white"
+                }`}
+              >
+                Beregn min mulige besparelse
+                <ArrowRight size={16} />
+              </button>
+
+              <p className="text-center text-[11px] leading-relaxed text-[#8D95A6]">
+                Vejledende estimat, før skat. Erstatter ikke individuel rådgivning.
+              </p>
+            </div>
+          </div>
+
+          {/* Right: result + lead */}
+          <div ref={resultRef} className="space-y-4">
+            {!hasCalculated ? (
+              /* Teaser */
+              <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_24px_rgba(37,52,87,0.07)] md:p-7">
+                <div className="mb-4 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F4FAFA]">
+                    <TrendingUp size={22} className="text-[#D7DEE8]" />
+                  </div>
+                  <p className="text-base font-black text-[#D7DEE8]">Dit resultat vises her</p>
+                  <p className="mt-1 text-xs italic text-[#C8CDD8]">Udfyld felterne til venstre og se, hvad du potentielt kan spare.</p>
+                </div>
+                {/* Blurred placeholder */}
+                <div className="select-none blur-[5px] pointer-events-none rounded-[18px] bg-[#F4FAFA] p-4">
+                  <p className="text-[11px] text-[#8D95A6]">Mulig ekstra pensionsværdi</p>
+                  <p className="mt-1 text-4xl font-black text-[#4FB7E7]">xxx.xxx kr.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-[12px] bg-white p-3">
+                      <p className="text-[10px] text-[#8D95A6]">I dag</p>
+                      <p className="text-sm font-bold text-[#253457]">x.xxx.xxx kr.</p>
                     </div>
+                    <div className="rounded-[12px] bg-[#EAF7FD] p-3">
+                      <p className="text-[10px] text-[#4FB7E7]">Optimeret</p>
+                      <p className="text-sm font-bold text-[#253457]">x.xxx.xxx kr.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : !results ? (
+              <div className="rounded-[20px] border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700">
+                Tjek at alle felter er udfyldt korrekt, og at pensionsalderen er højere end din nuværende alder.
+              </div>
+            ) : submitted ? (
+              /* Success */
+              <div className="fade-in rounded-[24px] border border-[#253457]/10 bg-white p-6 text-center shadow-[0_4px_24px_rgba(37,52,87,0.07)]">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF7FD]">
+                  <Check size={22} className="text-[#4FB7E7]" />
+                </div>
+                <h2 className="text-xl font-black tracking-tight text-[#253457]">Tak, {name.split(" ")[0]}!</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#5F687A]">
+                  Sebastian ringer dig op hurtigst muligt for en kort, gratis gennemgang. Ingen forpligtelse.
+                </p>
+                <div className="mt-4 rounded-[16px] bg-[#F4FAFA] p-4">
+                  <p className="text-[11px] font-bold text-[#8D95A6]">Din mulige optimering</p>
+                  <p className="mt-1 text-3xl font-black tracking-tight text-[#253457]">
+                    {formatCurrency(results.returnDifference)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-[#8D95A6]">
+                    Ved {String(costSaving).replace(".", ",")}% lavere omkostninger
+                  </p>
+                </div>
+                <p className="mt-4 text-[11px] text-[#8D95A6]">
+                  Vil du selv booke?{" "}
+                  <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="text-[#4FB7E7] underline">
+                    Vælg tid her
+                  </a>
+                </p>
+              </div>
+            ) : (
+              /* Result + lead form */
+              <div className="fade-in space-y-4">
+                {/* Result */}
+                <div className="rounded-[24px] border border-[#4FB7E7]/25 bg-white p-5 shadow-[0_8px_40px_rgba(79,183,231,0.12)] md:p-6">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">Din mulige pensionsoptimering</p>
+                  <p className="text-[2.6rem] font-black leading-none tracking-tight text-[#253457] md:text-[3rem]">
+                    <AnimatedNumber value={results.returnDifference} />
+                  </p>
+                  <p className="mt-2 text-xs text-[#5F687A]">
+                    Mulig ekstra pensionsværdi ved {String(costSaving).replace(".", ",")}% lavere omkostninger.
+                  </p>
 
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.24em] text-[#4FB7E7]">
-                        Næste skridt
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-[16px] border border-[#253457]/8 bg-[#FBFCFD] p-4">
+                      <p className="text-[11px] font-semibold text-[#8D95A6]">Nuværende forløb</p>
+                      <p className="mt-1 text-base font-black tracking-tight text-[#253457]">
+                        {formatCurrency(results.baseline.futureValue)}
                       </p>
-
-                      <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#253457] md:text-3xl">
-                        Send mig min mulige optimering!
-                      </h2>
-
-                      <p className="mt-3 text-sm leading-relaxed text-[#667085]">
-                        Udfyld dine oplysninger, så sender vi dit estimat på mail
+                    </div>
+                    <div className="rounded-[16px] border border-[#4FB7E7]/20 bg-[#EAF7FD] p-4">
+                      <p className="text-[11px] font-semibold text-[#4FB7E7]">Med lavere omkostninger</p>
+                      <p className="mt-1 text-base font-black tracking-tight text-[#253457]">
+                        {formatCurrency(results.improved.futureValue)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="mt-3 rounded-[14px] border border-[#253457]/8 bg-[#F4FAFA] px-4 py-3 text-[11px] leading-relaxed text-[#8D95A6]">
+                    Vejledende beregning baseret på 5% p.a. afkast, før skat. Renters rente betyder at selv
+                    små forskelle i omkostninger kan vokse markant over tid.
+                  </div>
+                </div>
+
+                {/* Lead form — always shown */}
+                <div className="rounded-[24px] bg-[#253457] p-5 shadow-[0_8px_32px_rgba(37,52,87,0.2)] md:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-white/20">
+                      <img src="/Seb1.jpg" alt="Sebastian" className="h-full w-full object-cover object-top" />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-black text-white">Få en gratis gennemgang</p>
+                      <p className="text-[11px] text-white/55">Sebastian ringer dig op — ingen forpligtelse</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      onFocus={() => {
-  if (!startedLeadFormTracked) {
-    setStartedLeadFormTracked(true)
-    track("Started Lead Form")
-    window.fbq?.("trackCustom", "StartedLeadForm")
-  }
-}}
-                      placeholder="Navn"
-                      className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
+                      placeholder="Dit navn"
+                      className="w-full rounded-[14px] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white/30 placeholder:text-white/30"
                     />
+                    <div className="relative">
+                      <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Telefonnummer"
+                        type="tel"
+                        className="w-full rounded-[14px] border border-white/12 bg-white/8 py-3 pl-10 pr-4 text-sm font-semibold text-white outline-none transition focus:border-white/30 placeholder:text-white/30"
+                      />
+                    </div>
 
-                    <input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="E-mail"
-                      type="email"
-                      className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
-                    />
-
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Telefonnummer"
-                      type="tel"
-                      className="w-full rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] px-4 py-3.5 text-sm font-semibold outline-none transition focus:border-[#4FB7E7]"
-                    />
-
-                    <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-white/10 bg-white/5 p-3.5">
                       <input
                         type="checkbox"
                         checked={consent}
                         onChange={(e) => setConsent(e.target.checked)}
-                        className="mt-1 h-4 w-4 cursor-pointer"
+                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#4FB7E7]"
                       />
-
-                      <span className="text-xs leading-relaxed text-[#667085]">
-                        Jeg accepterer, at RådgiverXperten må behandle mine
-                        oplysninger og kontakte mig via mail og telefon vedrørende
-                        min pensionsvurdering. Jeg kan til enhver tid trække mit
-                        samtykke tilbage.
+                      <span className="text-[11px] leading-relaxed text-white/45">
+                        Jeg accepterer, at RådgiverXperten må kontakte mig via telefon vedrørende min pensionsvurdering.
+                        Samtykket kan tilbagekaldes til enhver tid.
                       </span>
                     </label>
 
                     <button
                       onClick={handleLeadSubmit}
-                      disabled={!canSubmit}
-                      className={`inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm font-bold transition ${
-                        canSubmit
-                          ? "cursor-pointer bg-[#253457] text-white hover:bg-[#1D2948]"
-                          : "cursor-not-allowed bg-[#D7DEE8] text-white"
+                      disabled={!canSubmit || isSubmitting}
+                      className={`flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-bold transition ${
+                        canSubmit && !isSubmitting
+                          ? "bg-[#4FB7E7] text-[#253457] hover:bg-[#3DA8D8] active:scale-[0.98]"
+                          : "cursor-not-allowed bg-white/10 text-white/30"
                       }`}
                     >
-                      Send mig min mulige optimering!
-                      <ArrowRight size={18} />
+                      {isSubmitting ? "Sender..." : "Ring mig op — det er gratis"}
+                      {!isSubmitting && <Phone size={14} />}
                     </button>
+
+                    <div className="flex items-center justify-center gap-5 pt-0.5">
+                      {["Gratis", "Uforpligtende", "10 minutter"].map((t) => (
+                        <div key={t} className="flex items-center gap-1 text-[10px] text-white/40">
+                          <Check size={11} className="text-[#4FB7E7]" />
+                          {t}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-        </section>
-      )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="border-t border-[#253457]/8 bg-white py-14 px-4 md:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 text-center">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#4FB7E7]">Sådan virker det</p>
+            <h2 className="text-2xl font-black tracking-tight text-[#253457] md:text-3xl">Tre simple trin</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { num: "01", title: "Beregn", desc: "Udfyld din alder, pensionsopsparing og månedlige indbetaling. Under 60 sekunder." },
+              { num: "02", title: "Få et overblik", desc: "Se et vejledende estimat på, hvad lavere omkostninger potentielt kan betyde for dig." },
+              { num: "03", title: "Tal med Sebastian", desc: "Gratis 10-minutters opkald. Vi skaber overblik og matcher dig med den rigtige rådgiver." },
+            ].map((step) => (
+              <div key={step.num} className="rounded-[20px] border border-[#253457]/8 bg-[#F4FAFA] p-5">
+                <p className="mb-3 text-4xl font-black text-[#D7DEE8]">{step.num}</p>
+                <p className="mb-1.5 font-black text-[#253457]">{step.title}</p>
+                <p className="text-[13px] leading-relaxed text-[#667085]">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-[#253457]/8 py-8 px-4 text-center md:px-8">
+        <div className="mx-auto max-w-5xl">
+          <img src="/logo.svg" alt="RådgiverXperten" className="mx-auto mb-4 h-auto w-[110px] object-contain opacity-35" />
+          <p className="mx-auto max-w-lg text-[11px] leading-relaxed text-[#8D95A6]">
+            RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
+            Alle beregninger er vejledende og erstatter ikke individuel pensionsrådgivning fra en autoriseret rådgiver.
+          </p>
+        </div>
+      </footer>
     </main>
   )
 }
