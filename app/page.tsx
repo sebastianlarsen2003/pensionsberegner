@@ -217,9 +217,8 @@ export default function Home() {
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-8">
           <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[130px] object-contain md:w-[170px]" />
           <a
+            href="#beregner"
             className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2 text-xs font-bold text-white hover:bg-[#1D2948] transition-colors"
-style={{ color: "#ffffff" }}
-            
           >
             <Clock3 size={12} />
             <span>Gratis tjek</span>
@@ -260,13 +259,13 @@ style={{ color: "#ffffff" }}
             </div>
           </div>
 
-          {/* Sebastian card */}
-          <div className="rounded-[20px] overflow-hidden border border-[#253457]/10 bg-white shadow-[0_8px_32px_rgba(37,52,87,0.08)]">
+          {/* Sebastian card — hidden on mobile, visible on md+ */}
+          <div className="hidden md:block rounded-[20px] overflow-hidden border border-[#253457]/10 bg-white shadow-[0_8px_32px_rgba(37,52,87,0.08)]">
             <div className="relative h-[220px] overflow-hidden bg-gradient-to-br from-[#c8d8e8] to-[#9ab8cc]">
               <img
                 src="/Seb1.jpg"
                 alt="Sebastian – Klient- og Partneransvarlig"
-                className="absolute inset-0 h-full w-full object-cover object-top"
+                className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#253457]/70 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -284,7 +283,7 @@ style={{ color: "#ffffff" }}
           </div>
         </div>
 
-        <div className="mt-8 flex justify-center md:mt-10">
+        <div className="mt-8 hidden justify-center md:flex md:mt-10">
           <a href="#beregner" className="flex flex-col items-center gap-1 text-[11px] text-[#8D95A6] hover:text-[#5F687A] transition-colors">
             Beregn din optimering
             <ChevronDown size={16} className="animate-bounce" />
@@ -293,7 +292,7 @@ style={{ color: "#ffffff" }}
       </section>
 
       {/* ── CALCULATOR ── */}
-      <section id="beregner" className="mx-auto max-w-5xl px-4 pb-16 md:px-8">
+      <section id="beregner" className="mx-auto max-w-5xl px-4 pb-16 md:px-8" style={{ scrollMarginTop: "64px" }}>
         <div className="grid gap-5 md:grid-cols-2 md:items-start">
 
           {/* Form */}
