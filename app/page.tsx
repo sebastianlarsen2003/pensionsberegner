@@ -218,7 +218,8 @@ export default function Home() {
           <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[130px] object-contain md:w-[170px]" />
           <a
             href="#beregner"
-            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2 text-xs font-bold text-white hover:bg-[#1D2948] transition-colors"
+            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2 text-xs font-bold hover:bg-[#1D2948] transition-colors"
+style={{ color: "#ffffff" }}
           >
             <Clock3 size={12} />
             <span>Gratis tjek</span>
