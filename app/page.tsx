@@ -1,17 +1,17 @@
 "use client"
 
 import { track } from "@vercel/analytics"
-import { useMemo, useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 import {
-  ArrowRight,
   Check,
   Clock3,
   Phone,
   ShieldCheck,
-  TrendingUp,
-  ChevronDown,
+  ChevronRight,
   Mail,
   Calendar,
+  Search,
+  Users,
 } from "lucide-react"
 
 declare global {
@@ -20,62 +20,31 @@ declare global {
   }
 }
 
-type SimulationResult = {
-  yearsToRetirement: number
-  futureValue: number
-  totalOwnContributions: number
-  estimatedReturn: number
-  estimatedMonthlyPension: number
-}
-
 const CALENDLY_URL = "https://calendly.com/sebastian-raadgiverxperten/10min"
 
-function formatCurrency(value: number) {
-  return `${Math.round(value).toLocaleString("da-DK")} kr.`
+function fmt(n: number) {
+  return `${Math.round(n).toLocaleString("da-DK")} kr.`
 }
 
-function calculatePensionScenario({
-  age,
-  retirementAge,
-  currentSavings,
-  monthlyContribution,
-  annualReturn,
-}: {
-  age: number
-  retirementAge: number
-  currentSavings: number
-  monthlyContribution: number
-  annualReturn: number
-}): SimulationResult | null {
-  if (!age || !retirementAge || currentSavings < 0 || monthlyContribution < 0 || retirementAge <= age) {
-    return null
+function calcPension(age: number, retAge: number, savings: number, monthly: number, rate: number) {
+  const months = (retAge - age) * 12
+  const mr = rate / 12
+  let val = savings
+  for (let m = 1; m <= months; m++) {
+    val += monthly
+    val *= 1 + mr
   }
-  const yearsToRetirement = retirementAge - age
-  const monthlyReturn = annualReturn / 12
-  const totalMonths = yearsToRetirement * 12
-  let totalValue = currentSavings
-  let totalPaidIn = currentSavings
-  for (let month = 1; month <= totalMonths; month++) {
-    totalValue += monthlyContribution
-    totalPaidIn += monthlyContribution
-    totalValue *= 1 + monthlyReturn
-  }
-  const futureValue = Math.round(totalValue)
-  const totalOwnContributions = Math.round(totalPaidIn)
-  const estimatedReturn = Math.max(0, Math.round(futureValue - totalOwnContributions))
-  const estimatedMonthlyPension = Math.round(futureValue / (20 * 12))
-  return { yearsToRetirement, futureValue, totalOwnContributions, estimatedReturn, estimatedMonthlyPension }
+  return Math.round(val)
 }
 
-function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: number }) {
+function AnimatedNumber({ value, duration = 1400 }: { value: number; duration?: number }) {
   const [displayed, setDisplayed] = useState(0)
-
   useEffect(() => {
     let startTime: number | null = null
     let frame: number
-    function step(timestamp: number) {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
+    function step(ts: number) {
+      if (!startTime) startTime = ts
+      const progress = Math.min((ts - startTime) / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       setDisplayed(Math.round(value * eased))
       if (progress < 1) frame = requestAnimationFrame(step)
@@ -83,22 +52,64 @@ function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: 
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
   }, [value, duration])
-
   return <>{displayed.toLocaleString("da-DK")} kr.</>
 }
 
+const STEPS = [
+  {
+    eyebrow: "Din situation",
+    question: "Hvor gammel er du?",
+    options: [
+      { label: "Under 35 år", age: 28 },
+      { label: "35–44 år", age: 40 },
+      { label: "45–54 år", age: 50 },
+      { label: "55 år eller derover", age: 60 },
+    ],
+  },
+  {
+    eyebrow: "Din opsparing",
+    question: "Hvor meget har du opsparet til pension?",
+    options: [
+      { label: "Under 200.000 kr.", savingsMin: 0, savingsMax: 200000, savings: 100000 },
+      { label: "200.000 – 500.000 kr.", savingsMin: 200000, savingsMax: 500000, savings: 350000 },
+      { label: "500.000 – 1.000.000 kr.", savingsMin: 500000, savingsMax: 1000000, savings: 750000 },
+      { label: "Over 1.000.000 kr.", savingsMin: 1000000, savingsMax: 2000000, savings: 1500000 },
+    ],
+  },
+  {
+    eyebrow: "Din indbetaling",
+    question: "Hvad indbetaler du månedligt til pension?",
+    options: [
+      { label: "Under 2.000 kr./md.", monthly: 1500 },
+      { label: "2.000 – 4.000 kr./md.", monthly: 3000 },
+      { label: "4.000 – 8.000 kr./md.", monthly: 6000 },
+      { label: "Over 8.000 kr./md.", monthly: 10000 },
+    ],
+  },
+  {
+    eyebrow: "Dit overblik",
+    question: "Ved du hvad du betaler i pensionsomkostninger?",
+    options: [
+      { label: "Ja, jeg kender mine omkostninger" },
+      { label: "Nej, jeg er ikke sikker" },
+      { label: "Det har jeg aldrig tænkt over" },
+    ],
+  },
+]
+
+// Input style — 16px font prevents iOS auto-zoom
+const inputClass = "w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8] text-[#253457] font-semibold"
+const inputStyle = { fontSize: "16px", padding: "14px 16px", WebkitAppearance: "none" as const }
+
 export default function Home() {
-  const resultRef = useRef<HTMLDivElement>(null)
+  const flowRef = useRef<HTMLDivElement>(null)
+  const contactRef = useRef<HTMLDivElement>(null)
+  const successRef = useRef<HTMLDivElement>(null)
 
-  const [age, setAge] = useState("")
-  const [retirementAge, setRetirementAge] = useState("67")
-  const [currentSavings, setCurrentSavings] = useState("")
-  const [monthlyContribution, setMonthlyContribution] = useState("")
-  const [costSaving, setCostSaving] = useState<0.5 | 0.75 | 1>(0.5)
-
-  const [hasCalculated, setHasCalculated] = useState(false)
+  const [step, setStep] = useState(0)
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  const [answers, setAnswers] = useState<Record<number, number>>({})
   const [submitted, setSubmitted] = useState(false)
-  const [startedCalculatorTracked, setStartedCalculatorTracked] = useState(false)
 
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -106,58 +117,84 @@ export default function Home() {
   const [email, setEmail] = useState("")
   const [consent, setConsent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [startedTracked, setStartedTracked] = useState(false)
 
-  const results = useMemo(() => {
-    const currentAge = Number(age)
-    const pensionAge = Number(retirementAge)
-    const savings = Number(currentSavings)
-    const monthly = Number(monthlyContribution)
-    const baselineReturn = 0.05
-    const baseline = calculatePensionScenario({
-      age: currentAge, retirementAge: pensionAge,
-      currentSavings: savings, monthlyContribution: monthly,
-      annualReturn: baselineReturn,
-    })
-    if (!baseline) return null
-    const improved = calculatePensionScenario({
-      age: currentAge, retirementAge: pensionAge,
-      currentSavings: savings, monthlyContribution: monthly,
-      annualReturn: baselineReturn + costSaving / 100,
-    })
-    if (!improved) return null
-    return { baseline, improved, returnDifference: improved.estimatedReturn - baseline.estimatedReturn }
-  }, [age, retirementAge, currentSavings, monthlyContribution, costSaving])
+  const [resultDiffMin, setResultDiffMin] = useState(0)
+  const [resultDiffMax, setResultDiffMax] = useState(0)
+  const [baseVal, setBaseVal] = useState(0)
 
-  const canCalculate =
-    Number(age) > 0 &&
-    Number(retirementAge) > Number(age) &&
-    Number(currentSavings) >= 0 &&
-    Number(monthlyContribution) >= 0 &&
-    currentSavings !== "" &&
-    monthlyContribution !== ""
+  const totalSteps = STEPS.length + 1
+  const progressPct = Math.round(((step + 1) / totalSteps) * 100)
 
   const canSubmit =
-    !!results &&
     name.trim() !== "" &&
     phone.trim() !== "" &&
     consent &&
     (!wantsEmail || (email.trim() !== "" && email.includes("@")))
 
-  function handleCalculate() {
-    setHasCalculated(true)
-    setSubmitted(false)
-    track("Calculated Pension Result")
-    window.fbq?.("trackCustom", "CalculatedPension", {
-      age, retirementAge, currentSavings, monthlyContribution, costSaving,
-    })
-    setTimeout(() => {
-      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 150)
+  function scrollToTop() {
+    // Scroll flow section into view below sticky header
+    flowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  async function handleLeadSubmit() {
-    if (!canSubmit || !results || isSubmitting) return
+  function handlePick(stepIdx: number, optionIdx: number) {
+    const opt = STEPS[stepIdx].options[optionIdx] as any
+    const newAnswers = { ...answers }
+
+    setSelectedIdx(optionIdx)
+
+    if (stepIdx === 0) newAnswers[0] = opt.age
+    if (stepIdx === 1) {
+      newAnswers[1] = opt.savings
+      newAnswers[10] = opt.savingsMin
+      newAnswers[11] = opt.savingsMax
+    }
+    if (stepIdx === 2) newAnswers[2] = opt.monthly
+
+    setAnswers(newAnswers)
+
+    setTimeout(() => {
+      setSelectedIdx(null)
+      if (stepIdx < STEPS.length - 1) {
+        setStep(stepIdx + 1)
+        setTimeout(scrollToTop, 80)
+      } else {
+        setStep(STEPS.length)
+        setTimeout(() => {
+          contactRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }, 80)
+      }
+    }, 320)
+  }
+
+  function computeResults() {
+    const age = answers[0] || 40
+    const savings = answers[1] || 350000
+    const savingsMin = answers[10] || 0
+    const savingsMax = answers[11] || 500000
+    const monthly = answers[2] || 3000
+    const retAge = 67
+
+    const base = calcPension(age, retAge, savings, monthly, 0.05)
+    const diffMin = Math.max(0,
+      calcPension(age, retAge, savingsMin || savings * 0.7, monthly, 0.055) -
+      calcPension(age, retAge, savingsMin || savings * 0.7, monthly, 0.05)
+    )
+    const diffMax = Math.max(0,
+      calcPension(age, retAge, savingsMax || savings * 1.3, monthly, 0.055) -
+      calcPension(age, retAge, savingsMax || savings * 1.3, monthly, 0.05)
+    )
+
+    setBaseVal(base)
+    setResultDiffMin(diffMin)
+    setResultDiffMax(diffMax)
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit || isSubmitting) return
     setIsSubmitting(true)
+    computeResults()
+
     try {
       await fetch("/api/send", {
         method: "POST",
@@ -166,8 +203,7 @@ export default function Home() {
           name,
           phone,
           email: wantsEmail ? email : undefined,
-          results,
-          costSaving,
+          answers,
         }),
       })
       await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
@@ -178,17 +214,19 @@ export default function Home() {
           name,
           phone,
           email: wantsEmail ? email : "",
-          age,
-          retirementAge,
-          costSaving: `${String(costSaving).replace(".", ",")}%`,
-          extraValue: `${Math.round(results.returnDifference).toLocaleString("da-DK")} kr.`,
-          baselineValue: `${Math.round(results.baseline.futureValue).toLocaleString("da-DK")} kr.`,
-          improvedValue: `${Math.round(results.improved.futureValue).toLocaleString("da-DK")} kr.`,
+          alder: answers[0] ? `${answers[0]} år` : "—",
+          opsparing: fmt(answers[1] || 0),
+          maanedlig: fmt(answers[2] || 0),
         }),
       })
+
       setSubmitted(true)
       track("Submitted Pension Lead")
-      window.fbq?.("track", "Lead", { content_name: "Pensionsberegner", lead_type: "Pension" })
+      window.fbq?.("track", "Lead", { content_name: "Pensionsflow", lead_type: "Pension" })
+
+      setTimeout(() => {
+        successRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 100)
     } catch {
       alert("Der opstod en fejl. Prøv igen.")
     } finally {
@@ -196,30 +234,39 @@ export default function Home() {
     }
   }
 
+  const stepLabels = [
+    "Spørgsmål 1 af 4",
+    "Spørgsmål 2 af 4",
+    "Spørgsmål 3 af 4",
+    "Spørgsmål 4 af 4",
+    "Dine oplysninger",
+  ]
+
   return (
-    <main className="min-h-screen bg-[#F4FAFA] text-[#253457]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <main
+      className="min-h-screen bg-[#F4FAFA] text-[#253457]"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        .fade-in { animation: fadeIn 0.45s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.28s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .pulse-dot { animation: pulseDot 2s infinite; }
-        @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.4)} }
-        .slide-down { animation: slideDown 0.25s ease forwards; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.3)} }
+        .slide-down { animation: slideDown 0.22s ease forwards; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        input, button, a { -webkit-tap-highlight-color: transparent; }
       `}</style>
 
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 border-b border-[#253457]/10 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:h-16 md:px-8">
-          <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[130px] object-contain md:w-[170px]" />
+      <header className="sticky top-0 z-50 border-b border-[#253457]/10 bg-white/92 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
+          <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[120px] object-contain" />
           <a
-            href="#beregner"
-            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2 text-xs font-bold hover:bg-[#1D2948] transition-colors"
-style={{ color: "#ffffff" }}
+            href="#flow"
+            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[#1D2948]"
+            style={{ color: "#ffffff" }}
           >
             <Clock3 size={12} />
             <span>Gratis tjek</span>
@@ -228,444 +275,343 @@ style={{ color: "#ffffff" }}
       </header>
 
       {/* ── HERO ── */}
-      <section className="mx-auto max-w-5xl px-4 pb-6 pt-10 md:px-8 md:pt-16 md:pb-10">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#4FB7E7]/30 bg-[#4FB7E7]/10 px-3 py-1.5 text-[11px] font-bold text-[#253457]">
-          <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-[#4FB7E7]" />
-          Gratis og uforpligtende pensionstjek
+      <section className="bg-[#253457] px-4 pb-7 pt-7">
+        <div className="mx-auto max-w-xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#4FB7E7]/40 bg-[#4FB7E7]/20 px-3 py-1.5 text-[11px] font-bold text-[#4FB7E7]">
+            <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-[#4FB7E7]" />
+            Gratis og uforpligtende
+          </div>
+          <h1 className="text-[1.7rem] font-black leading-[1.1] tracking-[-0.025em] text-white sm:text-[2rem]">
+            Betaler du for meget{" "}
+            <span className="text-[#4FB7E7]">i pension?</span>
+          </h1>
+          <p className="mt-3 text-[13px] leading-relaxed text-white/60">
+            Svar på 4 hurtige spørgsmål og se, hvad du potentielt kan optimere.
+          </p>
+          <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
+            {/* Sebastian photo */}
+            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white/20">
+              <img
+                src="/Seb1.jpg"
+                alt="Sebastian"
+                className="h-full w-full object-cover object-[center_20%]"
+              />
+            </div>
+            <div>
+              <p className="text-[13px] font-bold text-white">Sebastian</p>
+              <p className="text-[11px] text-white/50">Klient- og Partneransvarlig</p>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="grid gap-6 md:grid-cols-[1fr_220px] md:items-start">
-          <div>
-            <h1 className="text-[2rem] font-black leading-[1.06] tracking-[-0.03em] text-[#253457] sm:text-[2.6rem] md:text-[3.2rem]">
-              Betaler du for meget{" "}
-              <span className="text-[#4FB7E7]">i pension?</span>
-            </h1>
-            <p className="mt-4 max-w-lg text-[0.95rem] leading-relaxed text-[#5F687A] md:text-[1.05rem]">
-              De fleste danskere betaler for høje omkostninger på deres pension — og ved det ikke.
-              Beregn på 60 sekunder, hvad det potentielt koster dig over tid.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2 md:gap-3">
-              {[
-                { icon: <ShieldCheck size={14} className="text-[#4FB7E7]" />, label: "Kvalitetssikret rådgivernetværk" },
-                { icon: <Check size={14} className="text-[#4FB7E7]" />, label: "Ingen binding eller forpligtelse" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center gap-1.5 rounded-full border border-[#253457]/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5F687A] shadow-sm md:px-4 md:py-2 md:text-xs"
+      {/* ── FLOW ── */}
+      {!submitted && (
+        <section
+          id="flow"
+          ref={flowRef}
+          className="mx-auto max-w-xl px-4 pb-16 pt-4"
+          style={{ scrollMarginTop: "60px" }}
+        >
+          {/* Progress bar */}
+          <div className="mb-4">
+            <div className="h-1 w-full overflow-hidden rounded-full bg-[#253457]/10">
+              <div
+                className="h-full rounded-full bg-[#4FB7E7] transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-[#8D95A6]">{stepLabels[step]}</p>
+          </div>
+
+          {/* Question steps */}
+          {step < STEPS.length && (
+            <div key={step} className="fade-in rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]">
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">
+                {STEPS[step].eyebrow}
+              </p>
+              <h2 className="mb-5 text-[1.1rem] font-black tracking-tight text-[#253457]">
+                {STEPS[step].question}
+              </h2>
+              <div className="space-y-2.5">
+                {STEPS[step].options.map((opt, i) => {
+                  const isSelected = selectedIdx === i
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        if (!startedTracked) {
+                          setStartedTracked(true)
+                          track("Started Pension Flow")
+                          window.fbq?.("trackCustom", "StartedFlow")
+                        }
+                        handlePick(step, i)
+                      }}
+                      style={{ minHeight: "54px" }}
+                      className={`flex w-full items-center gap-3 rounded-[14px] border px-4 py-4 text-left transition-all active:scale-[0.98] ${
+                        isSelected
+                          ? "border-[#4FB7E7] bg-[#EAF7FD]"
+                          : "border-[#253457]/12 bg-[#FBFCFD] hover:border-[#4FB7E7]/50 hover:bg-[#EAF7FD]"
+                      }`}
+                    >
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all ${
+                        isSelected ? "border-[#4FB7E7] bg-[#4FB7E7]" : "border-[#253457]/20"
+                      }`}>
+                        <Check size={11} className={isSelected ? "text-white" : "text-transparent"} />
+                      </div>
+                      <span className="text-[14px] font-semibold text-[#253457]">{(opt as any).label}</span>
+                      <ChevronRight size={14} className="ml-auto shrink-0 text-[#C8CDD8]" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Contact step */}
+          {step === STEPS.length && (
+            <div
+              ref={contactRef}
+              key="contact"
+              className="fade-in rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]"
+              style={{ scrollMarginTop: "70px" }}
+            >
+              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">
+                Næste skridt
+              </p>
+              <h2 className="text-[1.1rem] font-black tracking-tight text-[#253457]">
+                Få dit personlige resultat
+              </h2>
+              <p className="mt-1 mb-5 text-[12px] leading-relaxed text-[#8D95A6]">
+                Udfyld navn og telefon — så viser vi dit resultat med det samme.
+              </p>
+
+              <div className="space-y-2.5">
+                {/* Navn — 16px prevents iOS zoom */}
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Dit navn"
+                  autoComplete="name"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+
+                {/* Telefon */}
+                <div className="relative">
+                  <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C8CDD8]" />
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Telefonnummer"
+                    type="tel"
+                    autoComplete="tel"
+                    className={inputClass}
+                    style={{ ...inputStyle, paddingLeft: "40px" }}
+                  />
+                </div>
+
+                {/* Mail toggle */}
+                <div className="rounded-[14px] border border-[#253457]/10 bg-[#F4FAFA]">
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5" style={{ minHeight: "52px" }}>
+                    <input
+                      type="checkbox"
+                      checked={wantsEmail}
+                      onChange={(e) => setWantsEmail(e.target.checked)}
+                      className="h-4 w-4 shrink-0 accent-[#4FB7E7]"
+                    />
+                    <span className="text-[13px] font-semibold text-[#253457]">
+                      Send mig også resultatet på mail
+                    </span>
+                    <Mail size={14} className="ml-auto shrink-0 text-[#8D95A6]" />
+                  </label>
+                  {wantsEmail && (
+                    <div className="slide-down border-t border-[#253457]/8 px-4 pb-3">
+                      <div className="relative mt-3">
+                        <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C8CDD8]" />
+                        <input
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Din e-mailadresse"
+                          type="email"
+                          autoComplete="email"
+                          className={inputClass}
+                          style={{ ...inputStyle, paddingLeft: "40px" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Samtykke */}
+                <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-[#253457]/10 bg-[#F4FAFA] p-4" style={{ minHeight: "52px" }}>
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#4FB7E7]"
+                  />
+                  <span className="text-[12px] leading-relaxed text-[#667085]">
+                    Jeg accepterer, at RådgiverXperten må kontakte mig via telefon
+                    {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering.
+                    Samtykket kan tilbagekaldes til enhver tid.
+                  </span>
+                </label>
+
+                {/* Submit */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || isSubmitting}
+                  style={{ minHeight: "54px", fontSize: "15px", WebkitAppearance: "none" as const }}
+                  className={`flex w-full items-center justify-center gap-2 rounded-full font-bold transition ${
+                    canSubmit && !isSubmitting
+                      ? "bg-[#4FB7E7] text-[#253457] hover:bg-[#3DA8D8] active:scale-[0.98]"
+                      : "cursor-not-allowed bg-[#D7DEE8] text-white"
+                  }`}
                 >
-                  {item.icon}
-                  {item.label}
+                  {isSubmitting ? "Beregner..." : "Se mit resultat"}
+                </button>
+
+                <div className="flex items-center justify-center gap-5 pt-0.5">
+                  {["Gratis", "Uforpligtende", "10 minutter"].map((t) => (
+                    <div key={t} className="flex items-center gap-1 text-[11px] text-[#8D95A6]">
+                      <Check size={11} className="text-[#4FB7E7]" />
+                      {t}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Trust pills */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { icon: <ShieldCheck size={13} className="text-[#4FB7E7]" />, label: "Kvalitetssikret rådgivernetværk" },
+              { icon: <Check size={13} className="text-[#4FB7E7]" />, label: "Ingen binding eller forpligtelse" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-1.5 rounded-full border border-[#253457]/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5F687A] shadow-sm"
+              >
+                {item.icon}
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── SUCCESS + RESULT ── */}
+      {submitted && (
+        <section
+          ref={successRef}
+          className="fade-in mx-auto max-w-xl space-y-4 px-4 pb-16 pt-5"
+          style={{ scrollMarginTop: "60px" }}
+        >
+          {/* Result card */}
+          <div className="rounded-[22px] bg-[#253457] p-6 shadow-[0_8px_32px_rgba(37,52,87,0.2)]">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">
+              Dit mulige optimeringspotentiale
+            </p>
+            <p className="text-[2.1rem] font-black leading-none tracking-tight text-white">
+              <AnimatedNumber value={resultDiffMin} />
+            </p>
+            <p className="mt-1 text-[14px] font-semibold text-white/60">
+              – <AnimatedNumber value={resultDiffMax} />
+            </p>
+            <p className="mt-3 text-[12px] leading-relaxed text-white/50">
+              Mulig ekstra pensionsværdi ved 0,5% lavere omkostninger, baseret på dit valgte opsparingsinterval.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-[14px] bg-white/8 p-3">
+                <p className="text-[10px] font-semibold text-white/50">Nuværende estimat</p>
+                <p className="mt-1 text-[13px] font-black text-white">{fmt(baseVal)}</p>
+              </div>
+              <div className="rounded-[14px] bg-[#4FB7E7]/20 p-3">
+                <p className="text-[10px] font-semibold text-[#4FB7E7]">Med lavere omkostninger</p>
+                <p className="mt-1 text-[13px] font-black text-white">
+                  {fmt(baseVal + resultDiffMin)} –<br />{fmt(baseVal + resultDiffMax)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-[12px] border border-white/10 bg-white/5 px-3 py-2.5">
+              <p className="text-[11px] leading-relaxed text-white/40">
+                ⚠️ Groft estimat baseret på dine svar og standardantagelser (5% p.a. afkast, pensionsalder 67, 0,5% lavere omkostninger). Før skat. Erstatter ikke individuel rådgivning.
+              </p>
+            </div>
+          </div>
+
+          {/* Hvad sker der nu */}
+          <div className="rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]">
+            <p className="mb-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">Hvad sker der nu?</p>
+            <div className="space-y-4">
+              {[
+                {
+                  icon: <Phone size={16} className="text-[#4FB7E7]" />,
+                  title: "Sebastian ringer dig op",
+                  desc: "Et kort, uforpligtende opkald hvor vi tager udgangspunkt i dit resultat og din pension.",
+                },
+                {
+                  icon: <Search size={16} className="text-[#4FB7E7]" />,
+                  title: "Vi skaber et overblik",
+                  desc: "Vi tager en dialog om din pensionsordning og ser om der er noget at optimere.",
+                },
+                {
+                  icon: <Users size={16} className="text-[#4FB7E7]" />,
+                  title: "Vi matcher dig videre",
+                  desc: "Hvis der er noget at gøre, matcher vi dig med den rigtige rådgiver i vores kvalitetssikrede netværk.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF7FD]">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#253457]">{item.title}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[#8D95A6]">{item.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Sebastian card — hidden on mobile, visible on md+ */}
-          <div className="hidden md:block rounded-[20px] overflow-hidden border border-[#253457]/10 bg-white shadow-[0_8px_32px_rgba(37,52,87,0.08)]">
-            <div className="relative h-[220px] overflow-hidden bg-gradient-to-br from-[#c8d8e8] to-[#9ab8cc]">
-              <img
-                src="/Seb1.jpg"
-                alt="Sebastian – Klient- og Partneransvarlig"
-                className="absolute inset-0 h-full w-full object-cover object-[center_20%]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#253457]/70 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                <p className="text-[15px] font-black tracking-tight">Sebastian</p>
-                <p className="text-[11px] text-white/75">Klient- og Partneransvarlig</p>
-              </div>
+          {/* Book */}
+          <div className="rounded-[22px] bg-[#253457] p-5 shadow-[0_8px_32px_rgba(37,52,87,0.2)]">
+            <div className="mb-1 flex items-center gap-2">
+              <Calendar size={16} className="shrink-0 text-[#4FB7E7]" />
+              <p className="text-[15px] font-black text-white">Vil du selv vælge tidspunkt?</p>
             </div>
-            <div className="border-t border-[#253457]/8 bg-[#FAFCFC] px-4 py-3">
-              <p className="text-[11px] italic leading-relaxed text-[#5F687A]">
-                "De fleste ved godt, at pension kan være dyrt i omkostninger.
-                De færreste når at gøre noget ved det."
-              </p>
-              <p className="mt-1.5 text-[10px] font-bold text-[#8D95A6]">— Sebastian, RådgiverXperten</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 hidden justify-center md:flex md:mt-10">
-          <a href="#beregner" className="flex flex-col items-center gap-1 text-[11px] text-[#8D95A6] hover:text-[#5F687A] transition-colors">
-            Beregn din optimering
-            <ChevronDown size={16} className="animate-bounce" />
-          </a>
-        </div>
-      </section>
-
-      {/* ── CALCULATOR ── */}
-      <section id="beregner" className="mx-auto max-w-5xl px-4 pb-16 md:px-8" style={{ scrollMarginTop: "64px" }}>
-        <div className="grid gap-5 md:grid-cols-2 md:items-start">
-
-          {/* Form */}
-          <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_24px_rgba(37,52,87,0.07)] md:p-7">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">Trin 1 — Beregn</p>
-            <h2 className="text-xl font-black tracking-tight text-[#253457] md:text-2xl">Hvad mister du i dag?</h2>
-            <p className="mt-1 mb-5 text-xs text-[#8D95A6]">Udfyld felterne — beregningen tager under 60 sekunder.</p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Din alder</label>
-                <input
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  onFocus={() => {
-                    if (!startedCalculatorTracked) {
-                      setStartedCalculatorTracked(true)
-                      track("Started Calculator")
-                      window.fbq?.("trackCustom", "StartedCalculator")
-                    }
-                  }}
-                  placeholder="fx 42"
-                  type="number"
-                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Pensionsalder</label>
-                <input
-                  value={retirementAge}
-                  onChange={(e) => setRetirementAge(e.target.value)}
-                  placeholder="fx 67"
-                  type="number"
-                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Opsparet pension i dag (kr.)</label>
-                <input
-                  value={currentSavings}
-                  onChange={(e) => setCurrentSavings(e.target.value)}
-                  placeholder="fx 450.000"
-                  type="number"
-                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-[#5F687A]">Månedlig indbetaling (kr.)</label>
-                <input
-                  value={monthlyContribution}
-                  onChange={(e) => setMonthlyContribution(e.target.value)}
-                  placeholder="fx 3.500"
-                  type="number"
-                  className="w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 py-3 text-sm font-semibold text-[#253457] outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8]"
-                />
-              </div>
-
-              <div className="rounded-[16px] border border-[#253457]/10 bg-[#FBFCFD] p-4">
-                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.15em] text-[#5F687A]">
-                  Hvad hvis omkostninger sænkes med:
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {([0.5, 0.75, 1] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setCostSaving(value)}
-                      className={`rounded-full border py-3 text-sm font-black transition ${
-                        costSaving === value
-                          ? "border-[#4FB7E7] bg-[#EAF7FD] text-[#253457]"
-                          : "border-[#253457]/10 bg-white text-[#8D95A6] hover:border-[#253457]/25"
-                      }`}
-                    >
-                      {String(value).replace(".", ",")}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={handleCalculate}
-                disabled={!canCalculate}
-                className={`flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-bold transition ${
-                  canCalculate
-                    ? "bg-[#253457] text-white hover:bg-[#1D2948] active:scale-[0.98]"
-                    : "cursor-not-allowed bg-[#D7DEE8] text-white"
-                }`}
-              >
-                Beregn min mulige besparelse
-                <ArrowRight size={16} />
-              </button>
-
-              <p className="text-center text-[11px] leading-relaxed text-[#8D95A6]">
-                Vejledende estimat, før skat. Erstatter ikke individuel rådgivning.
-              </p>
-            </div>
+            <p className="mb-5 text-[12px] leading-relaxed text-white/50">
+              Book direkte i Sebastian's kalender — gratis og uforpligtende.
+            </p>
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                track("Book Meeting Click")
+                window.fbq?.("trackCustom", "BookMeetingClick")
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4FB7E7] font-bold text-[#253457] transition hover:bg-[#3DA8D8] active:scale-[0.98]"
+              style={{ minHeight: "54px", fontSize: "15px" }}
+            >
+              <Calendar size={15} />
+              Book et gratis opkald
+            </a>
+            <p className="mt-3 text-center text-[11px] text-white/30">
+              Eller vent — Sebastian ringer dig op hurtigst muligt
+            </p>
           </div>
 
-          {/* Result + lead */}
-          <div ref={resultRef} className="space-y-4">
-            {!hasCalculated ? (
-              /* Teaser */
-              <div className="rounded-[24px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_24px_rgba(37,52,87,0.07)] md:p-7">
-                <div className="mb-4 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F4FAFA]">
-                    <TrendingUp size={22} className="text-[#D7DEE8]" />
-                  </div>
-                  <p className="text-base font-black text-[#D7DEE8]">Dit resultat vises her</p>
-                  <p className="mt-1 text-xs italic text-[#C8CDD8]">Udfyld felterne til venstre og se, hvad du potentielt kan spare.</p>
-                </div>
-                <div className="pointer-events-none select-none blur-[5px] rounded-[18px] bg-[#F4FAFA] p-4">
-                  <p className="text-[11px] text-[#8D95A6]">Mulig ekstra pensionsværdi</p>
-                  <p className="mt-1 text-4xl font-black text-[#4FB7E7]">xxx.xxx kr.</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-[12px] bg-white p-3">
-                      <p className="text-[10px] text-[#8D95A6]">I dag</p>
-                      <p className="text-sm font-bold text-[#253457]">x.xxx.xxx kr.</p>
-                    </div>
-                    <div className="rounded-[12px] bg-[#EAF7FD] p-3">
-                      <p className="text-[10px] text-[#4FB7E7]">Optimeret</p>
-                      <p className="text-sm font-bold text-[#253457]">x.xxx.xxx kr.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : !results ? (
-              <div className="rounded-[20px] border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700">
-                Tjek at alle felter er udfyldt korrekt, og at pensionsalderen er højere end din nuværende alder.
-              </div>
-            ) : submitted ? (
-
-              /* ── SUCCESS ── */
-              <div className="fade-in space-y-4">
-                <div className="rounded-[24px] border border-[#253457]/10 bg-white p-6 shadow-[0_4px_24px_rgba(37,52,87,0.07)]">
-                  <div className="mb-1 flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EAF7FD]">
-                      <Check size={20} className="text-[#4FB7E7]" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-black tracking-tight text-[#253457]">
-                        Tak, {name.split(" ")[0]}!
-                      </h2>
-                      <p className="text-[12px] text-[#8D95A6]">Sebastian ringer dig op hurtigst muligt.</p>
-                    </div>
-                  </div>
-
-                  {/* Result summary */}
-                  <div className="mt-5 rounded-[18px] bg-[#F4FAFA] p-5">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#8D95A6]">Din mulige pensionsoptimering</p>
-                    <p className="mt-2 text-[2.4rem] font-black leading-none tracking-tight text-[#253457]">
-                      {formatCurrency(results.returnDifference)}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#8D95A6]">
-                      Ved {String(costSaving).replace(".", ",")}% lavere omkostninger
-                    </p>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <div className="rounded-[12px] border border-[#253457]/8 bg-white p-3">
-                        <p className="text-[10px] font-semibold text-[#8D95A6]">Nuværende forløb</p>
-                        <p className="mt-0.5 text-sm font-black text-[#253457]">{formatCurrency(results.baseline.futureValue)}</p>
-                      </div>
-                      <div className="rounded-[12px] border border-[#4FB7E7]/20 bg-[#EAF7FD] p-3">
-                        <p className="text-[10px] font-semibold text-[#4FB7E7]">Med lavere omkostninger</p>
-                        <p className="mt-0.5 text-sm font-black text-[#253457]">{formatCurrency(results.improved.futureValue)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Book CTA */}
-                <div className="rounded-[24px] bg-[#253457] p-6 shadow-[0_8px_32px_rgba(37,52,87,0.2)]">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Calendar size={18} className="text-[#4FB7E7] shrink-0" />
-                    <p className="text-[15px] font-black text-white">Vil du selv vælge et tidspunkt?</p>
-                  </div>
-                  <p className="mb-5 text-[12px] leading-relaxed text-white/55">
-                    Book et gratis 10-minutters opkald direkte i Sebastian's kalender — eller vent på at han ringer dig op.
-                  </p>
-                  <a
-                    href={CALENDLY_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => {
-                      track("Book Meeting Click")
-                      window.fbq?.("trackCustom", "BookMeetingClick")
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4FB7E7] py-4 text-sm font-bold text-[#253457] transition hover:bg-[#3DA8D8] active:scale-[0.98]"
-                  >
-                    Book et gratis opkald
-                    <Calendar size={15} />
-                  </a>
-                  <p className="mt-3 text-center text-[11px] text-white/35">
-                    Eller vent — Sebastian ringer dig op hurtigst muligt
-                  </p>
-                </div>
-              </div>
-
-            ) : (
-
-              /* ── RESULT + LEAD FORM ── */
-              <div className="fade-in space-y-4">
-
-                {/* Result card */}
-                <div className="rounded-[24px] border border-[#4FB7E7]/25 bg-white p-5 shadow-[0_8px_40px_rgba(79,183,231,0.12)] md:p-6">
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">Din mulige pensionsoptimering</p>
-                  <p className="text-[2.6rem] font-black leading-none tracking-tight text-[#253457] md:text-[3rem]">
-                    <AnimatedNumber value={results.returnDifference} />
-                  </p>
-                  <p className="mt-2 text-xs text-[#5F687A]">
-                    Mulig ekstra pensionsværdi ved {String(costSaving).replace(".", ",")}% lavere omkostninger.
-                  </p>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-[16px] border border-[#253457]/8 bg-[#FBFCFD] p-4">
-                      <p className="text-[11px] font-semibold text-[#8D95A6]">Nuværende forløb</p>
-                      <p className="mt-1 text-base font-black tracking-tight text-[#253457]">
-                        {formatCurrency(results.baseline.futureValue)}
-                      </p>
-                    </div>
-                    <div className="rounded-[16px] border border-[#4FB7E7]/20 bg-[#EAF7FD] p-4">
-                      <p className="text-[11px] font-semibold text-[#4FB7E7]">Med lavere omkostninger</p>
-                      <p className="mt-1 text-base font-black tracking-tight text-[#253457]">
-                        {formatCurrency(results.improved.futureValue)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 rounded-[14px] border border-[#253457]/8 bg-[#F4FAFA] px-4 py-3 text-[11px] leading-relaxed text-[#8D95A6]">
-                    Vejledende beregning baseret på 5% p.a. afkast, før skat. Renters rente betyder at selv
-                    små forskelle i omkostninger kan vokse markant over tid.
-                  </div>
-                </div>
-
-                {/* Lead form */}
-                <div className="rounded-[24px] bg-[#253457] p-5 shadow-[0_8px_32px_rgba(37,52,87,0.2)] md:p-6">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-white/20">
-                      <img src="/Seb1.jpg" alt="Sebastian" className="h-full w-full object-cover object-top" />
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-black text-white">Få en gratis gennemgang</p>
-                      <p className="text-[11px] text-white/55">Sebastian ringer dig op — ingen forpligtelse</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {/* Navn */}
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Dit navn"
-                      className="w-full rounded-[14px] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white/30 placeholder:text-white/30"
-                    />
-
-                    {/* Telefon */}
-                    <div className="relative">
-                      <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-                      <input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Telefonnummer"
-                        type="tel"
-                        className="w-full rounded-[14px] border border-white/12 bg-white/8 py-3 pl-10 pr-4 text-sm font-semibold text-white outline-none transition focus:border-white/30 placeholder:text-white/30"
-                      />
-                    </div>
-
-                    {/* Mail opt-in */}
-                    <div className="rounded-[14px] border border-white/10 bg-white/5">
-                      <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={wantsEmail}
-                          onChange={(e) => setWantsEmail(e.target.checked)}
-                          className="h-4 w-4 shrink-0 cursor-pointer accent-[#4FB7E7]"
-                        />
-                        <span className="text-[13px] font-semibold text-white/80">
-                          Send mig også resultatet på mail
-                        </span>
-                        <Mail size={14} className="ml-auto shrink-0 text-white/30" />
-                      </label>
-
-                      {wantsEmail && (
-                        <div className="slide-down border-t border-white/8 px-4 pb-3">
-                          <div className="relative mt-3">
-                            <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-                            <input
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              placeholder="Din e-mailadresse"
-                              type="email"
-                              className="w-full rounded-[12px] border border-white/12 bg-white/8 py-3 pl-10 pr-4 text-sm font-semibold text-white outline-none transition focus:border-white/30 placeholder:text-white/30"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Samtykke */}
-                    <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-white/10 bg-white/5 p-3.5">
-                      <input
-                        type="checkbox"
-                        checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#4FB7E7]"
-                      />
-                      <span className="text-[11px] leading-relaxed text-white/45">
-                        Jeg accepterer, at RådgiverXperten må kontakte mig via telefon
-                        {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering.
-                        Samtykket kan tilbagekaldes til enhver tid.
-                      </span>
-                    </label>
-
-                    {/* Submit */}
-                    <button
-                      onClick={handleLeadSubmit}
-                      disabled={!canSubmit || isSubmitting}
-                      className={`flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-bold transition ${
-                        canSubmit && !isSubmitting
-                          ? "bg-[#4FB7E7] text-[#253457] hover:bg-[#3DA8D8] active:scale-[0.98]"
-                          : "cursor-not-allowed bg-white/10 text-white/30"
-                      }`}
-                    >
-                      {isSubmitting ? "Sender..." : "Ring mig op — det er gratis"}
-                      {!isSubmitting && <Phone size={14} />}
-                    </button>
-
-                    <div className="flex items-center justify-center gap-5 pt-0.5">
-                      {["Gratis", "Uforpligtende", "10 minutter"].map((t) => (
-                        <div key={t} className="flex items-center gap-1 text-[10px] text-white/40">
-                          <Check size={11} className="text-[#4FB7E7]" />
-                          {t}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section className="border-t border-[#253457]/8 bg-white py-14 px-4 md:px-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8 text-center">
-            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#4FB7E7]">Sådan virker det</p>
-            <h2 className="text-2xl font-black tracking-tight text-[#253457] md:text-3xl">Tre simple trin</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              { num: "01", title: "Beregn", desc: "Udfyld din alder, pensionsopsparing og månedlige indbetaling. Under 60 sekunder." },
-              { num: "02", title: "Få et overblik", desc: "Se et vejledende estimat på, hvad lavere omkostninger potentielt kan betyde for dig." },
-              { num: "03", title: "Tal med Sebastian", desc: "Gratis 10-minutters opkald. Vi skaber overblik og matcher dig med den rigtige rådgiver." },
-            ].map((step) => (
-              <div key={step.num} className="rounded-[20px] border border-[#253457]/8 bg-[#F4FAFA] p-5">
-                <p className="mb-3 text-4xl font-black text-[#D7DEE8]">{step.num}</p>
-                <p className="mb-1.5 font-black text-[#253457]">{step.title}</p>
-                <p className="text-[13px] leading-relaxed text-[#667085]">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="border-t border-[#253457]/8 py-8 px-4 text-center md:px-8">
-        <div className="mx-auto max-w-5xl">
-          <img src="/logo.svg" alt="RådgiverXperten" className="mx-auto mb-4 h-auto w-[110px] object-contain opacity-35" />
-          <p className="mx-auto max-w-lg text-[11px] leading-relaxed text-[#8D95A6]">
+          {/* Footer */}
+          <p className="text-center text-[11px] leading-relaxed text-[#8D95A6]">
             RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
             Alle beregninger er vejledende og erstatter ikke individuel pensionsrådgivning fra en autoriseret rådgiver.
           </p>
-        </div>
-      </footer>
+        </section>
+      )}
     </main>
   )
 }
