@@ -95,6 +95,14 @@ const STEPS = [
       { label: "Det har jeg aldrig tænkt over" },
     ],
   },
+  {
+    eyebrow: "Din pensionsstruktur",
+    question: "Har du din pensionsopsparing mere end ét sted?",
+    options: [
+      { label: "Ja" },
+      { label: "Nej" },
+    ],
+  },
 ]
 
 // Input style — 16px font prevents iOS auto-zoom
@@ -235,10 +243,11 @@ export default function Home() {
   }
 
   const stepLabels = [
-    "Spørgsmål 1 af 4",
-    "Spørgsmål 2 af 4",
-    "Spørgsmål 3 af 4",
-    "Spørgsmål 4 af 4",
+    "Spørgsmål 1 af 5",
+    "Spørgsmål 2 af 5",
+    "Spørgsmål 3 af 5",
+    "Spørgsmål 4 af 5",
+    "Spørgsmål 5 af 5",
     "Dine oplysninger",
   ]
 
@@ -286,7 +295,7 @@ export default function Home() {
             <span className="text-[#4FB7E7]">i pension?</span>
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-white/60">
-            Svar på 4 hurtige spørgsmål og se, hvad du potentielt kan optimere.
+            Svar på 5 hurtige spørgsmål og se, hvad du potentielt kan optimere.
           </p>
           <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
             {/* Sebastian photo */}
@@ -551,12 +560,12 @@ export default function Home() {
                 {
                   icon: <Phone size={16} className="text-[#4FB7E7]" />,
                   title: "Sebastian ringer dig op",
-                  desc: "Et kort, uforpligtende opkald hvor vi tager udgangspunkt i dit resultat og din pension.",
+                  desc: "Et kort, gratis opkald hvor vi tager udgangspunkt i dit resultat og din nuværende pensionsløsning.",
                 },
                 {
                   icon: <Search size={16} className="text-[#4FB7E7]" />,
-                  title: "Vi skaber et overblik",
-                  desc: "Vi tager en dialog om din pensionsordning og ser om der er noget at optimere.",
+                  title: "Vi gennemgår din løsning",
+                  desc: "Vi kigger konkret på om din pensionsordning er sat fornuftigt op — og om der er noget at optimere.",
                 },
                 {
                   icon: <Users size={16} className="text-[#4FB7E7]" />,
