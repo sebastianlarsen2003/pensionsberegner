@@ -157,7 +157,9 @@ export default function Home() {
       newAnswers[10] = opt.savingsMin
       newAnswers[11] = opt.savingsMax
     }
+    
     if (stepIdx === 2) newAnswers[2] = opt.monthly
+    if (stepIdx === 3) newAnswers[3] = optionIdx
     if (stepIdx === 4) newAnswers[4] = optionIdx
 
     setAnswers(newAnswers)
@@ -218,7 +220,7 @@ export default function Home() {
       await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
         method: "POST",
         mode: "no-cors",
-        body: JSON.stringify({
+       body: JSON.stringify({
   date: new Date().toISOString(),
   name,
   phone,
@@ -226,6 +228,9 @@ export default function Home() {
   alder: answers[0] ? `${answers[0]} år` : "—",
   opsparing: fmt(answers[1] || 0),
   maanedlig: fmt(answers[2] || 0),
+  kender_omkostninger: answers[3] !== undefined
+    ? ["Ja, jeg kender mine omkostninger", "Nej, jeg er ikke sikker", "Det har jeg aldrig tænkt over"][answers[3]]
+    : "—",
   flere_pensioner: answers[4] !== undefined
     ? (answers[4] === 0 ? "Ja" : "Nej")
     : "—",
