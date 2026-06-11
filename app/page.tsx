@@ -158,6 +158,7 @@ export default function Home() {
       newAnswers[11] = opt.savingsMax
     }
     if (stepIdx === 2) newAnswers[2] = opt.monthly
+    if (stepIdx === 4) newAnswers[4] = optionIdx
 
     setAnswers(newAnswers)
 
@@ -218,14 +219,17 @@ export default function Home() {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
-          date: new Date().toISOString(),
-          name,
-          phone,
-          email: wantsEmail ? email : "",
-          alder: answers[0] ? `${answers[0]} år` : "—",
-          opsparing: fmt(answers[1] || 0),
-          maanedlig: fmt(answers[2] || 0),
-        }),
+  date: new Date().toISOString(),
+  name,
+  phone,
+  email: wantsEmail ? email : "",
+  alder: answers[0] ? `${answers[0]} år` : "—",
+  opsparing: fmt(answers[1] || 0),
+  maanedlig: fmt(answers[2] || 0),
+  flere_pensioner: answers[4] !== undefined
+    ? (answers[4] === 0 ? "Ja" : "Nej")
+    : "—",
+}),
       })
 
       setSubmitted(true)
