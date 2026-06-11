@@ -610,7 +610,7 @@ export default function Home() {
               Book et gratis opkald
             </a>
             <p className="mt-3 text-center text-[11px] text-white/30">
-              Eller vent — Sebastian ringer dig op hurtigst muligt
+              Ellers ringer Sebastian dig op hurtigst muligt
             </p>
           </div>
 
