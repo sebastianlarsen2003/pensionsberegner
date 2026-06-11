@@ -304,7 +304,7 @@ export default function Home() {
             <span className="text-[#4FB7E7]">i pension?</span>
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-white/60">
-            Svar på 5 hurtige spørgsmål og se, hvad du potentielt kan optimere.
+            Svar på 5 hurtige spørgsmål og se din potentielle besparelse og merværdi.
           </p>
           <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
             {/* Sebastian photo */}
