@@ -474,7 +474,7 @@ export default function Home() {
   Jeg accepterer, at RådgiverXperten eller deres relevante samarbejdspartner må kontakte mig via telefon
   {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering.
   Samtykket kan tilbagekaldes til enhver tid. Læs vores{" "}
-  <a href="https://raadgiverxperten.dk/privacy-policy/" target="_blank" rel="noopener noreferrer" className="underline text-[#4FB7E7]">privatlivspolitik</a>.
+  <a href="https://raadgiverxperten.dk/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[#4FB7E7]" style={{ textDecoration: "underline" }}>privatlivspolitik her</a>.
 </span>
                 </label>
 
