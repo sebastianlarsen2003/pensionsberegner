@@ -1,17 +1,19 @@
 "use client"
 
 import { track } from "@vercel/analytics"
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState } from "react"
 import {
   Check,
   Clock3,
   Phone,
-  ShieldCheck,
   ChevronRight,
   Mail,
   Calendar,
   Search,
   Users,
+  Download,
+  CheckCircle2,
+  ListChecks,
 } from "lucide-react"
 
 declare global {
@@ -21,92 +23,66 @@ declare global {
 }
 
 const CALENDLY_URL = "https://calendly.com/sebastian-raadgiverxperten/10min"
-
-function fmt(n: number) {
-  return `${Math.round(n).toLocaleString("da-DK")} kr.`
-}
-
-function calcPension(age: number, retAge: number, savings: number, monthly: number, rate: number) {
-  const months = (retAge - age) * 12
-  const mr = rate / 12
-  let val = savings
-  for (let m = 1; m <= months; m++) {
-    val += monthly
-    val *= 1 + mr
-  }
-  return Math.round(val)
-}
-
-function AnimatedNumber({ value, duration = 1400 }: { value: number; duration?: number }) {
-  const [displayed, setDisplayed] = useState(0)
-  useEffect(() => {
-    let startTime: number | null = null
-    let frame: number
-    function step(ts: number) {
-      if (!startTime) startTime = ts
-      const progress = Math.min((ts - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setDisplayed(Math.round(value * eased))
-      if (progress < 1) frame = requestAnimationFrame(step)
-    }
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
-  }, [value, duration])
-  return <>{displayed.toLocaleString("da-DK")} kr.</>
-}
+const ZAPIER_URL = "https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/"
 
 const STEPS = [
   {
     eyebrow: "Din situation",
     question: "Hvor gammel er du?",
-    options: [
-      { label: "Under 35 år", age: 28 },
-      { label: "35–44 år", age: 40 },
-      { label: "45–54 år", age: 50 },
-      { label: "55 år eller derover", age: 60 },
-    ],
+    options: ["Under 35 år", "35–44 år", "45–54 år", "55 år eller derover"],
   },
   {
-    eyebrow: "Din opsparing",
-    question: "Hvor meget har du opsparet til pension?",
-    options: [
-      { label: "Under 200.000 kr.", savingsMin: 0, savingsMax: 200000, savings: 100000 },
-      { label: "200.000 – 500.000 kr.", savingsMin: 200000, savingsMax: 500000, savings: 350000 },
-      { label: "500.000 – 1.000.000 kr.", savingsMin: 500000, savingsMax: 1000000, savings: 750000 },
-      { label: "Over 1.000.000 kr.", savingsMin: 1000000, savingsMax: 2000000, savings: 1500000 },
-    ],
-  },
-  {
-    eyebrow: "Din indbetaling",
-    question: "Hvad indbetaler du månedligt til pension?",
-    options: [
-      { label: "Under 2.000 kr./md.", monthly: 1500 },
-      { label: "2.000 – 4.000 kr./md.", monthly: 3000 },
-      { label: "4.000 – 8.000 kr./md.", monthly: 6000 },
-      { label: "Over 8.000 kr./md.", monthly: 10000 },
-    ],
+    eyebrow: "Din pension",
+    question: "Har du pension via din arbejdsgiver?",
+    options: ["Ja", "Nej, jeg er selvstændig", "Ikke sikker"],
   },
   {
     eyebrow: "Dit overblik",
-    question: "Ved du hvad du betaler i pensionsomkostninger?",
+    question: "Hvad er din samlede pensionsopsparing ca.?",
     options: [
-      { label: "Ja, jeg kender mine omkostninger" },
-      { label: "Nej, jeg er ikke sikker" },
-      { label: "Det har jeg aldrig tænkt over" },
+      "Under 100.000 kr.",
+      "100.000 – 250.000 kr.",
+      "250.000 – 500.000 kr.",
+      "500.000 – 1.000.000 kr.",
+      "1.000.000 – 1.500.000 kr.",
+      "Over 1.500.000 kr.",
     ],
   },
   {
-    eyebrow: "Din pensionsstruktur",
-    question: "Har du din pensionsopsparing mere end ét sted?",
+    eyebrow: "Dine begunstigede",
+    question: "Ved du hvem der er begunstiget på dine pensionsordninger?",
     options: [
-      { label: "Ja" },
-      { label: "Nej" },
+      "Ja, jeg har selv valgt det",
+      "Nej, jeg har aldrig taget stilling til det",
+      "Jeg vidste ikke det var noget man skulle tage stilling til",
     ],
+    note: "Arveloven og begunstigede er to forskellige ting. Har du sikret at din pension går til dem du ønsker?",
+  },
+  {
+    eyebrow: "Dine omkostninger",
+    question: "Kender du dine pensionsomkostninger?",
+    options: ["Ja, jeg kender mine omkostninger", "Nej, jeg er ikke sikker", "Det har jeg aldrig tænkt over"],
   },
 ]
 
+const CHECKLIST_ITEMS = [
+  "Tjek om din arbejdsgiverpension dækker dig ved sygdom og dødsfald",
+  "Undersøg om du kan indbetale mere via din arbejdsgiver — ofte med en skattefordel",
+  "Få overblik over hvad du reelt betaler i omkostninger på din ordning",
+  "Tjek for gamle fripolicer eller pensioner fra tidligere jobs",
+  "Genbesøg din pension om 1-2 år, eller når din situation ændrer sig",
+]
+
+function isQualified(answers: Record<number, number>) {
+  // Selvstændig kvalificerer altid
+  if (answers[1] === 1) return true
+  const under100k = answers[2] === 0
+  if (under100k) return false
+  return true
+}
+
 // Input style — 16px font prevents iOS auto-zoom
-const inputClass = "w-full rounded-[14px] border border-[#253457]/12 bg-[#FBFCFD] px-4 outline-none transition focus:border-[#4FB7E7] focus:ring-2 focus:ring-[#4FB7E7]/10 placeholder:text-[#C8CDD8] text-[#253457] font-semibold"
+const inputClass = "w-full rounded-[14px] border border-[#E8E4DD] bg-[#F8F6F2] px-4 outline-none transition focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/10 placeholder:text-[#94A3B8] text-[#1B2E4B] font-semibold"
 const inputStyle = { fontSize: "16px", padding: "14px 16px", WebkitAppearance: "none" as const }
 
 export default function Home() {
@@ -118,6 +94,7 @@ export default function Home() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [submitted, setSubmitted] = useState(false)
+  const [qualified, setQualified] = useState(false)
 
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -126,10 +103,6 @@ export default function Home() {
   const [consent, setConsent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [startedTracked, setStartedTracked] = useState(false)
-
-  const [resultDiffMin, setResultDiffMin] = useState(0)
-  const [resultDiffMax, setResultDiffMax] = useState(0)
-  const [baseVal, setBaseVal] = useState(0)
 
   const totalSteps = STEPS.length + 1
   const progressPct = Math.round(((step + 1) / totalSteps) * 100)
@@ -145,23 +118,14 @@ export default function Home() {
     flowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  function labelFor(stepIdx: number) {
+    const idx = answers[stepIdx]
+    return idx !== undefined ? STEPS[stepIdx].options[idx] : "—"
+  }
+
   function handlePick(stepIdx: number, optionIdx: number) {
-    const opt = STEPS[stepIdx].options[optionIdx] as any
-    const newAnswers = { ...answers }
-
     setSelectedIdx(optionIdx)
-
-    if (stepIdx === 0) newAnswers[0] = opt.age
-    if (stepIdx === 1) {
-      newAnswers[1] = opt.savings
-      newAnswers[10] = opt.savingsMin
-      newAnswers[11] = opt.savingsMax
-    }
-    
-    if (stepIdx === 2) newAnswers[2] = opt.monthly
-    if (stepIdx === 3) newAnswers[3] = optionIdx
-    if (stepIdx === 4) newAnswers[4] = optionIdx
-
+    const newAnswers = { ...answers, [stepIdx]: optionIdx }
     setAnswers(newAnswers)
 
     setTimeout(() => {
@@ -178,33 +142,11 @@ export default function Home() {
     }, 320)
   }
 
-  function computeResults() {
-    const age = answers[0] || 40
-    const savings = answers[1] || 350000
-    const savingsMin = answers[10] || 0
-    const savingsMax = answers[11] || 500000
-    const monthly = answers[2] || 3000
-    const retAge = 67
-
-    const base = calcPension(age, retAge, savings, monthly, 0.05)
-    const diffMin = Math.max(0,
-      calcPension(age, retAge, savingsMin || savings * 0.7, monthly, 0.055) -
-      calcPension(age, retAge, savingsMin || savings * 0.7, monthly, 0.05)
-    )
-    const diffMax = Math.max(0,
-      calcPension(age, retAge, savingsMax || savings * 1.3, monthly, 0.055) -
-      calcPension(age, retAge, savingsMax || savings * 1.3, monthly, 0.05)
-    )
-
-    setBaseVal(base)
-    setResultDiffMin(diffMin)
-    setResultDiffMax(diffMax)
-  }
-
   async function handleSubmit() {
     if (!canSubmit || isSubmitting) return
     setIsSubmitting(true)
-    computeResults()
+    const result = isQualified(answers)
+    setQualified(result)
 
     try {
       await fetch("/api/send", {
@@ -215,31 +157,32 @@ export default function Home() {
           phone,
           email: wantsEmail ? email : undefined,
           answers,
+          qualified: result,
         }),
       })
-      await fetch("https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/", {
+      await fetch(ZAPIER_URL, {
         method: "POST",
         mode: "no-cors",
-       body: JSON.stringify({
-  date: new Date().toISOString(),
-  name,
-  phone,
-  email: wantsEmail ? email : "",
-  alder: answers[0] ? `${answers[0]} år` : "—",
-  opsparing: fmt(answers[1] || 0),
-  maanedlig: fmt(answers[2] || 0),
-  kender_omkostninger: answers[3] !== undefined
-    ? ["Ja, jeg kender mine omkostninger", "Nej, jeg er ikke sikker", "Det har jeg aldrig tænkt over"][answers[3]]
-    : "—",
-  flere_pensioner: answers[4] !== undefined
-    ? (answers[4] === 0 ? "Ja" : "Nej")
-    : "—",
-}),
+        body: JSON.stringify({
+          date: new Date().toISOString(),
+          name,
+          phone,
+          email: wantsEmail ? email : "",
+          alder: labelFor(0),
+          arbejdsgiverpension: labelFor(1),
+          samlet_opsparing: labelFor(2),
+          begunstigede: labelFor(3),
+          kender_omkostninger: labelFor(4),
+          kvalificeret: result ? "Ja" : "Nej",
+        }),
       })
 
       setSubmitted(true)
       track("Submitted Pension Lead")
-      window.fbq?.("track", "Lead", { content_name: "Pensionsflow", lead_type: "Pension" })
+      window.fbq?.("track", "Lead", {
+        content_name: "Pensionsflow",
+        lead_type: result ? "Qualified" : "Checklist",
+      })
 
       setTimeout(() => {
         successRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -262,7 +205,7 @@ export default function Home() {
 
   return (
     <main
-      className="min-h-screen bg-[#F4FAFA] text-[#253457]"
+      className="min-h-screen bg-[#F8F6F2] text-[#1B2E4B]"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <style>{`
@@ -278,12 +221,12 @@ export default function Home() {
       `}</style>
 
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 border-b border-[#253457]/10 bg-white/92 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
+      <header className="sticky top-0 z-50 border-b border-[#E8E4DD] bg-white/92 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-[430px] items-center justify-between px-4">
           <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[120px] object-contain" />
           <a
             href="#flow"
-            className="flex items-center gap-1.5 rounded-full bg-[#253457] px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[#1D2948]"
+            className="flex items-center gap-1.5 rounded-[10px] bg-[#1B2E4B] px-4 py-2.5 text-xs font-bold transition-colors hover:bg-[#15243D]"
             style={{ color: "#ffffff" }}
           >
             <Clock3 size={12} />
@@ -293,18 +236,14 @@ export default function Home() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="bg-[#253457] px-4 pb-7 pt-7">
-        <div className="mx-auto max-w-xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#4FB7E7]/40 bg-[#4FB7E7]/20 px-3 py-1.5 text-[11px] font-bold text-[#4FB7E7]">
-            <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-[#4FB7E7]" />
-            Gratis og uforpligtende
-          </div>
+      <section className="bg-[#1B2E4B] px-4 pb-7 pt-7">
+        <div className="mx-auto max-w-[430px]">
           <h1 className="text-[1.7rem] font-black leading-[1.1] tracking-[-0.025em] text-white sm:text-[2rem]">
-            Betaler du for meget{" "}
-            <span className="text-[#4FB7E7]">i pension?</span>
+            Se om du har brug for et{" "}
+            <span className="text-[#0EA5E9]">gratis pensionstjek</span>
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-white/60">
-            Svar på 5 hurtige spørgsmål og se din potentielle besparelse og merværdi.
+            Svar på 5 korte spørgsmål — vi vurderer om vi kan matche dig med en kvalificeret rådgiver.
           </p>
           <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
             {/* Sebastian photo */}
@@ -328,31 +267,31 @@ export default function Home() {
         <section
           id="flow"
           ref={flowRef}
-          className="mx-auto max-w-xl px-4 pb-16 pt-4"
+          className="mx-auto max-w-[430px] px-4 pb-16 pt-4"
           style={{ scrollMarginTop: "60px" }}
         >
           {/* Progress bar */}
           <div className="mb-4">
-            <div className="h-1 w-full overflow-hidden rounded-full bg-[#253457]/10">
+            <div className="h-1 w-full overflow-hidden rounded-[3px] bg-[#E8E4DD]">
               <div
-                className="h-full rounded-full bg-[#4FB7E7] transition-all duration-500"
+                className="h-full rounded-[3px] bg-[#0EA5E9] transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="mt-2 text-[11px] text-[#8D95A6]">{stepLabels[step]}</p>
+            <p className="mt-2 text-[11px] text-[#64748B]">{stepLabels[step]}</p>
           </div>
 
           {/* Question steps */}
           {step < STEPS.length && (
-            <div key={step} className="fade-in rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]">
-              <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">
+            <div key={step} className="fade-in rounded-[22px] border border-[#E8E4DD] bg-white p-5 shadow-[0_4px_20px_rgba(27,46,75,0.07)]">
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#0EA5E9]">
                 {STEPS[step].eyebrow}
               </p>
-              <h2 className="mb-5 text-[1.1rem] font-black tracking-tight text-[#253457]">
+              <h2 className="mb-5 text-[1.1rem] font-black tracking-tight text-[#1B2E4B]">
                 {STEPS[step].question}
               </h2>
               <div className="space-y-2.5">
-                {STEPS[step].options.map((opt, i) => {
+                {STEPS[step].options.map((label, i) => {
                   const isSelected = selectedIdx === i
                   return (
                     <button
@@ -369,21 +308,26 @@ export default function Home() {
                       style={{ minHeight: "54px" }}
                       className={`flex w-full items-center gap-3 rounded-[14px] border px-4 py-4 text-left transition-all active:scale-[0.98] ${
                         isSelected
-                          ? "border-[#4FB7E7] bg-[#EAF7FD]"
-                          : "border-[#253457]/12 bg-[#FBFCFD] hover:border-[#4FB7E7]/50 hover:bg-[#EAF7FD]"
+                          ? "border-[#0EA5E9] bg-[#F0F9FF]"
+                          : "border-[#E8E4DD] bg-[#F8F6F2] hover:border-[#0EA5E9]/50 hover:bg-[#F0F9FF]"
                       }`}
                     >
-                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all ${
-                        isSelected ? "border-[#4FB7E7] bg-[#4FB7E7]" : "border-[#253457]/20"
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-[1.5px] transition-all ${
+                        isSelected ? "border-[#0EA5E9] bg-[#0EA5E9]" : "border-[#CBD5E1]"
                       }`}>
                         <Check size={11} className={isSelected ? "text-white" : "text-transparent"} />
                       </div>
-                      <span className="text-[14px] font-semibold text-[#253457]">{(opt as any).label}</span>
-                      <ChevronRight size={14} className="ml-auto shrink-0 text-[#C8CDD8]" />
+                      <span className="text-[14px] font-semibold text-[#1B2E4B]">{label}</span>
+                      <ChevronRight size={14} className="ml-auto shrink-0 text-[#94A3B8]" />
                     </button>
                   )
                 })}
               </div>
+              {STEPS[step].note && (
+                <p className="mt-3 text-[11px] italic leading-relaxed text-[#94A3B8]">
+                  {STEPS[step].note}
+                </p>
+              )}
             </div>
           )}
 
@@ -392,16 +336,16 @@ export default function Home() {
             <div
               ref={contactRef}
               key="contact"
-              className="fade-in rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]"
+              className="fade-in rounded-[22px] border border-[#E8E4DD] bg-white p-5 shadow-[0_4px_20px_rgba(27,46,75,0.07)]"
               style={{ scrollMarginTop: "70px" }}
             >
-              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">
+              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#0EA5E9]">
                 Næste skridt
               </p>
-              <h2 className="text-[1.1rem] font-black tracking-tight text-[#253457]">
+              <h2 className="text-[1.1rem] font-black tracking-tight text-[#1B2E4B]">
                 Få dit personlige resultat
               </h2>
-              <p className="mt-1 mb-5 text-[12px] leading-relaxed text-[#8D95A6]">
+              <p className="mt-1 mb-5 text-[12px] leading-relaxed text-[#64748B]">
                 Udfyld navn og telefon — så viser vi dit resultat med det samme.
               </p>
 
@@ -418,7 +362,7 @@ export default function Home() {
 
                 {/* Telefon */}
                 <div className="relative">
-                  <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C8CDD8]" />
+                  <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                   <input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -431,23 +375,23 @@ export default function Home() {
                 </div>
 
                 {/* Mail toggle */}
-                <div className="rounded-[14px] border border-[#253457]/10 bg-[#F4FAFA]">
+                <div className="rounded-[14px] border border-[#E8E4DD] bg-[#F8F6F2]">
                   <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5" style={{ minHeight: "52px" }}>
                     <input
                       type="checkbox"
                       checked={wantsEmail}
                       onChange={(e) => setWantsEmail(e.target.checked)}
-                      className="h-4 w-4 shrink-0 accent-[#4FB7E7]"
+                      className="h-4 w-4 shrink-0 accent-[#0EA5E9]"
                     />
-                    <span className="text-[13px] font-semibold text-[#253457]">
+                    <span className="text-[13px] font-semibold text-[#1B2E4B]">
                       Send mig også resultatet på mail
                     </span>
-                    <Mail size={14} className="ml-auto shrink-0 text-[#8D95A6]" />
+                    <Mail size={14} className="ml-auto shrink-0 text-[#64748B]" />
                   </label>
                   {wantsEmail && (
-                    <div className="slide-down border-t border-[#253457]/8 px-4 pb-3">
+                    <div className="slide-down border-t border-[#E8E4DD] px-4 pb-3">
                       <div className="relative mt-3">
-                        <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C8CDD8]" />
+                        <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                         <input
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -463,19 +407,19 @@ export default function Home() {
                 </div>
 
                 {/* Samtykke */}
-                <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-[#253457]/10 bg-[#F4FAFA] p-4" style={{ minHeight: "52px" }}>
+                <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-[#E8E4DD] bg-[#F8F6F2] p-4" style={{ minHeight: "52px" }}>
                   <input
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#4FB7E7]"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#0EA5E9]"
                   />
-<span className="text-[11px] leading-relaxed text-[#667085]">
-  Jeg accepterer, at RådgiverXperten eller deres relevante samarbejdspartner må kontakte mig via telefon
-  {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering.
-  Samtykket kan tilbagekaldes til enhver tid. Læs vores{" "}
-  <a href="https://raadgiverxperten.dk/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[#4FB7E7]" style={{ textDecoration: "underline" }}>privatlivspolitik her</a>.
-</span>
+                  <span className="text-[11px] leading-relaxed text-[#64748B]">
+                    Jeg accepterer, at RådgiverXperten eller deres relevante samarbejdspartner må kontakte mig via telefon
+                    {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering.
+                    Samtykket kan tilbagekaldes til enhver tid. Læs vores{" "}
+                    <a href="https://raadgiverxperten.dk/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-[#0EA5E9]" style={{ textDecoration: "underline" }}>privatlivspolitik her</a>.
+                  </span>
                 </label>
 
                 {/* Submit */}
@@ -483,10 +427,10 @@ export default function Home() {
                   onClick={handleSubmit}
                   disabled={!canSubmit || isSubmitting}
                   style={{ minHeight: "54px", fontSize: "15px", WebkitAppearance: "none" as const }}
-                  className={`flex w-full items-center justify-center gap-2 rounded-full font-bold transition ${
+                  className={`flex w-full items-center justify-center gap-2 rounded-[14px] font-bold transition ${
                     canSubmit && !isSubmitting
-                      ? "bg-[#4FB7E7] text-[#253457] hover:bg-[#3DA8D8] active:scale-[0.98]"
-                      : "cursor-not-allowed bg-[#D7DEE8] text-white"
+                      ? "bg-[#0EA5E9] text-[#1B2E4B] hover:bg-[#0284C7] active:scale-[0.98]"
+                      : "cursor-not-allowed bg-[#E2E8F0] text-[#94A3B8]"
                   }`}
                 >
                   {isSubmitting ? "Beregner..." : "Se mit resultat"}
@@ -494,8 +438,8 @@ export default function Home() {
 
                 <div className="flex items-center justify-center gap-5 pt-0.5">
                   {["Gratis", "Uforpligtende", "10 minutter"].map((t) => (
-                    <div key={t} className="flex items-center gap-1 text-[11px] text-[#8D95A6]">
-                      <Check size={11} className="text-[#4FB7E7]" />
+                    <div key={t} className="flex items-center gap-1 text-[11px] text-[#64748B]">
+                      <Check size={11} className="text-[#0EA5E9]" />
                       {t}
                     </div>
                   ))}
@@ -503,107 +447,28 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          {/* Trust pills */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              { icon: <ShieldCheck size={13} className="text-[#4FB7E7]" />, label: "Kvalitetssikret rådgivernetværk" },
-              { icon: <Check size={13} className="text-[#4FB7E7]" />, label: "Ingen binding eller forpligtelse" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-1.5 rounded-full border border-[#253457]/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5F687A] shadow-sm"
-              >
-                {item.icon}
-                {item.label}
-              </div>
-            ))}
-          </div>
         </section>
       )}
 
-      {/* ── SUCCESS + RESULT ── */}
-      {submitted && (
+      {/* ── RESULT: QUALIFIED ── */}
+      {submitted && qualified && (
         <section
           ref={successRef}
-          className="fade-in mx-auto max-w-xl space-y-4 px-4 pb-16 pt-5"
+          className="fade-in mx-auto max-w-[430px] space-y-4 px-4 pb-16 pt-5"
           style={{ scrollMarginTop: "60px" }}
         >
-          {/* Result card */}
-          <div className="rounded-[22px] bg-[#253457] p-6 shadow-[0_8px_32px_rgba(37,52,87,0.2)]">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#4FB7E7]">
-              Dit mulige optimeringspotentiale
+          {/* Match card */}
+          <div className="rounded-[22px] bg-[#1B2E4B] p-6 shadow-[0_8px_32px_rgba(27,46,75,0.2)]">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#0EA5E9]">
+              Dit resultat
             </p>
-            <p className="text-[2.1rem] font-black leading-none tracking-tight text-white">
-              <AnimatedNumber value={resultDiffMin} />
-            </p>
-            <p className="mt-1 text-[14px] font-semibold text-white/60">
-              – <AnimatedNumber value={resultDiffMax} />
-            </p>
-            <p className="mt-3 text-[12px] leading-relaxed text-white/50">
-              Mulig ekstra pensionsværdi ved 0,5% lavere omkostninger, baseret på dit valgte opsparingsinterval.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-[14px] bg-white/8 p-3">
-                <p className="text-[10px] font-semibold text-white/50">Nuværende estimat</p>
-                <p className="mt-1 text-[13px] font-black text-white">{fmt(baseVal)}</p>
-              </div>
-              <div className="rounded-[14px] bg-[#4FB7E7]/20 p-3">
-                <p className="text-[10px] font-semibold text-[#4FB7E7]">Med lavere omkostninger</p>
-                <p className="mt-1 text-[13px] font-black text-white">
-                  {fmt(baseVal + resultDiffMin)} –<br />{fmt(baseVal + resultDiffMax)}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 rounded-[12px] border border-white/10 bg-white/5 px-3 py-2.5">
-              <p className="text-[11px] leading-relaxed text-white/40">
-                ⚠️ Groft estimat baseret på dine svar og standardantagelser (5% p.a. afkast, pensionsalder 67, 0,5% lavere omkostninger). Før skat. Erstatter ikke individuel rådgivning.
-              </p>
-            </div>
-          </div>
-
-          {/* Hvad sker der nu */}
-          <div className="rounded-[22px] border border-[#253457]/10 bg-white p-5 shadow-[0_4px_20px_rgba(37,52,87,0.07)]">
-            <p className="mb-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#4FB7E7]">Hvad sker der nu?</p>
-            <div className="space-y-4">
-              {[
-                {
-                  icon: <Phone size={16} className="text-[#4FB7E7]" />,
-                  title: "Sebastian ringer dig op",
-                  desc: "Et kort, gratis opkald hvor vi tager udgangspunkt i dit resultat og din nuværende pensionsløsning.",
-                },
-                {
-                  icon: <Search size={16} className="text-[#4FB7E7]" />,
-                  title: "Vi gennemgår din løsning",
-                  desc: "Vi kigger konkret på om din pensionsordning er sat fornuftigt op — og om der er noget at optimere.",
-                },
-                {
-                  icon: <Users size={16} className="text-[#4FB7E7]" />,
-                  title: "Vi matcher dig videre",
-                  desc: "Hvis der er noget at gøre, matcher vi dig med den rigtige rådgiver i vores kvalitetssikrede netværk.",
-                },
-              ].map((item) => (
-                <div key={item.title} className="flex gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF7FD]">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-[#253457]">{item.title}</p>
-                    <p className="mt-0.5 text-[12px] leading-relaxed text-[#8D95A6]">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Book */}
-          <div className="rounded-[22px] bg-[#253457] p-5 shadow-[0_8px_32px_rgba(37,52,87,0.2)]">
-            <div className="mb-1 flex items-center gap-2">
-              <Calendar size={16} className="shrink-0 text-[#4FB7E7]" />
-              <p className="text-[15px] font-black text-white">Vil du selv vælge tidspunkt?</p>
-            </div>
-            <p className="mb-5 text-[12px] leading-relaxed text-white/50">
-              Book direkte i Sebastian's kalender — gratis og uforpligtende.
+            <h2 className="text-[1.4rem] font-black leading-tight text-white">
+              Vi matcher dig med den rigtige rådgiver
+            </h2>
+            <p className="mt-3 text-[13px] leading-relaxed text-white/60">
+              Ud fra dine svar kan der være noget at hente ved at få et professionelt tjek af din pension. Book et
+              gratis og uforpligtende opkald, så finder vi den rådgiver i vores netværk, der passer bedst til din
+              situation.
             </p>
             <a
               href={CALENDLY_URL}
@@ -613,7 +478,7 @@ export default function Home() {
                 track("Book Meeting Click")
                 window.fbq?.("trackCustom", "BookMeetingClick")
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#4FB7E7] font-bold text-[#253457] transition hover:bg-[#3DA8D8] active:scale-[0.98]"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[#0EA5E9] font-bold text-[#1B2E4B] transition hover:bg-[#0284C7] active:scale-[0.98]"
               style={{ minHeight: "54px", fontSize: "15px" }}
             >
               <Calendar size={15} />
@@ -624,10 +489,107 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Hvad sker der til mødet */}
+          <div className="rounded-[22px] border border-[#E8E4DD] bg-white p-5 shadow-[0_4px_20px_rgba(27,46,75,0.07)]">
+            <p className="mb-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#0EA5E9]">Hvad sker der til mødet?</p>
+            <div className="space-y-4">
+              {[
+                {
+                  icon: <Search size={16} className="text-[#0EA5E9]" />,
+                  title: "Vi gennemgår din pension",
+                  desc: "Vi kigger konkret på om din pensionsordning er sat fornuftigt op — og om der er noget at optimere.",
+                },
+                {
+                  icon: <Users size={16} className="text-[#0EA5E9]" />,
+                  title: "Vi matcher dig videre",
+                  desc: "Hvis der er noget at gøre, matcher vi dig med den rigtige rådgiver i vores kvalitetssikrede netværk.",
+                },
+                {
+                  icon: <Clock3 size={16} className="text-[#0EA5E9]" />,
+                  title: "20 minutter, gratis",
+                  desc: "Et kort, uforpligtende opkald — ingen binding, og du bestemmer selv om du vil gå videre.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#F0F9FF]">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#1B2E4B]">{item.title}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[#64748B]">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Footer */}
-          <p className="text-center text-[11px] leading-relaxed text-[#8D95A6]">
+          <p className="text-center text-[11px] leading-relaxed text-[#64748B]">
             RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
-            Alle beregninger er vejledende og erstatter ikke individuel pensionsrådgivning fra en autoriseret rådgiver.
+          </p>
+        </section>
+      )}
+
+      {/* ── RESULT: CHECKLIST ── */}
+      {submitted && !qualified && (
+        <section
+          ref={successRef}
+          className="fade-in mx-auto max-w-[430px] space-y-4 px-4 pb-16 pt-5"
+          style={{ scrollMarginTop: "60px" }}
+        >
+          {/* Green card */}
+          <div className="rounded-[22px] border border-[#064E3B]/25 bg-[#ECFDF5] p-6">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#064E3B]/15">
+              <CheckCircle2 size={20} className="text-[#064E3B]" />
+            </div>
+            <h2 className="text-[1.3rem] font-black leading-tight text-[#064E3B]">
+              Din pension ser fornuftig ud
+            </h2>
+            <p className="mt-3 text-[13px] leading-relaxed text-[#064E3B]/70">
+              Ud fra dine svar har du ikke umiddelbart en stor opsparing, og du samler den ét sted via din
+              arbejdsgiver. Det er der ofte ikke noget at gøre ved lige nu — men her er nogle ting, du selv kan holde
+              øje med.
+            </p>
+          </div>
+
+          {/* Checklist */}
+          <div className="rounded-[22px] border border-[#E8E4DD] bg-white p-5 shadow-[0_4px_20px_rgba(27,46,75,0.07)]">
+            <div className="mb-4 flex items-center gap-2">
+              <ListChecks size={16} className="text-[#0EA5E9]" />
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#0EA5E9]">Din tjekliste</p>
+            </div>
+            <div className="space-y-3.5">
+              {CHECKLIST_ITEMS.map((item, i) => (
+                <div key={item} className="flex gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-[#F0F9FF] text-[11px] font-black text-[#0EA5E9]">
+                    {i + 1}
+                  </div>
+                  <p className="text-[13px] leading-relaxed text-[#1B2E4B]">{item}</p>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => track("Download Checklist Click")}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] border border-[#E8E4DD] bg-[#F8F6F2] py-3.5 text-[13px] font-bold text-[#1B2E4B] transition hover:bg-[#F0F9FF] active:scale-[0.98]"
+              style={{ minHeight: "50px" }}
+            >
+              <Download size={14} />
+              Download tjekliste som PDF
+            </button>
+          </div>
+
+          {/* Note */}
+          <div className="rounded-[16px] border border-[#E8E4DD] bg-white/60 p-4">
+            <p className="text-[11px] leading-relaxed text-[#64748B]">
+              Skifter du job eller får en fripolice? Gem os — så finder vi den rigtige rådgiver til dig.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-[11px] leading-relaxed text-[#64748B]">
+            RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
           </p>
         </section>
       )}
