@@ -12,8 +12,6 @@ import {
   Search,
   Users,
   Download,
-  CheckCircle2,
-  ListChecks,
 } from "lucide-react"
 
 declare global {
@@ -35,6 +33,17 @@ const STEPS = [
     eyebrow: "Din pension",
     question: "Har du pension via din arbejdsgiver?",
     options: ["Ja", "Nej, jeg er selvstændig", "Ikke sikker"],
+  },
+  {
+    eyebrow: "Din opsparing",
+    question: "Har du pension eller opsparing ud over det?",
+    options: [
+      "Ja, pensionsopsparing",
+      "Ja, aktie- eller investeringsdepot",
+      "Ja, begge dele",
+      "Nej, kun arbejdsgiverpension",
+      "Ikke sikker",
+    ],
   },
   {
     eyebrow: "Dit overblik",
@@ -66,18 +75,34 @@ const STEPS = [
 ]
 
 const CHECKLIST_ITEMS = [
-  "Tjek om din arbejdsgiverpension dækker dig ved sygdom og dødsfald",
-  "Undersøg om du kan indbetale mere via din arbejdsgiver — ofte med en skattefordel",
-  "Få overblik over hvad du reelt betaler i omkostninger på din ordning",
-  "Tjek for gamle fripolicer eller pensioner fra tidligere jobs",
-  "Genbesøg din pension om 1-2 år, eller når din situation ændrer sig",
+  {
+    title: "Begunstigede",
+    desc: "Hvem arver din pension? Arveloven og begunstigede er to forskellige ting. Log ind på din pensionskasses hjemmeside og tjek det.",
+  },
+  {
+    title: "Invaliddækning",
+    desc: "Hvad sker der med din økonomi hvis du bliver syg i lang tid? Tjek om din dækning er stor nok.",
+  },
+  {
+    title: "Overflødige forsikringer",
+    desc: "Mange betaler for forsikringer de aldrig får brug for. Gennemgå hvad der er inkluderet i din pensionsordning.",
+  },
+  {
+    title: "Risikoprofil",
+    desc: "Er din opsparing investeret rigtigt for din alder? Jo tættere du er på pension, jo lavere risiko bør du typisk have.",
+  },
+  {
+    title: "Pensionsinfo.dk",
+    desc: "Gå ind og få et samlet overblik over alle dine pensioner på ét sted. Det tager 5 minutter med MitID.",
+  },
 ]
 
 function isQualified(answers: Record<number, number>) {
   // Selvstændig kvalificerer altid
   if (answers[1] === 1) return true
-  const under100k = answers[2] === 0
-  if (under100k) return false
+  const under100k = answers[3] === 0
+  const kunArbejdsgiverpension = answers[2] === 3
+  if (under100k && kunArbejdsgiverpension) return false
   return true
 }
 
@@ -170,9 +195,10 @@ export default function Home() {
           email: wantsEmail ? email : "",
           alder: labelFor(0),
           arbejdsgiverpension: labelFor(1),
-          samlet_opsparing: labelFor(2),
-          begunstigede: labelFor(3),
-          kender_omkostninger: labelFor(4),
+          ekstra_opsparing: labelFor(2),
+          samlet_opsparing: labelFor(3),
+          begunstigede: labelFor(4),
+          kender_omkostninger: labelFor(5),
           kvalificeret: result ? "Ja" : "Nej",
         }),
       })
@@ -195,11 +221,12 @@ export default function Home() {
   }
 
   const stepLabels = [
-    "Spørgsmål 1 af 5",
-    "Spørgsmål 2 af 5",
-    "Spørgsmål 3 af 5",
-    "Spørgsmål 4 af 5",
-    "Spørgsmål 5 af 5",
+    "Spørgsmål 1 af 6",
+    "Spørgsmål 2 af 6",
+    "Spørgsmål 3 af 6",
+    "Spørgsmål 4 af 6",
+    "Spørgsmål 5 af 6",
+    "Spørgsmål 6 af 6",
     "Dine oplysninger",
   ]
 
@@ -243,7 +270,7 @@ export default function Home() {
             <span className="text-[#0EA5E9]">gratis pensionstjek</span>
           </h1>
           <p className="mt-3 text-[13px] leading-relaxed text-white/60">
-            Svar på 5 korte spørgsmål — vi vurderer om vi kan matche dig med en kvalificeret rådgiver.
+            Svar på 6 korte spørgsmål — vi vurderer om vi kan matche dig med en kvalificeret rådgiver.
           </p>
           <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
             {/* Sebastian photo */}
@@ -496,8 +523,8 @@ export default function Home() {
               {[
                 {
                   icon: <Search size={16} className="text-[#0EA5E9]" />,
-                  title: "Vi gennemgår din pension",
-                  desc: "Vi kigger konkret på om din pensionsordning er sat fornuftigt op — og om der er noget at optimere.",
+                  title: "Dialog omkring din pension",
+                  desc: "Vi tager en kort dialog omkring din pension og sender dig videre til en rådgiver, hvis det er noget du ønsker og der kan gøres en forskel.",
                 },
                 {
                   icon: <Users size={16} className="text-[#0EA5E9]" />,
@@ -537,34 +564,36 @@ export default function Home() {
           className="fade-in mx-auto max-w-[430px] space-y-4 px-4 pb-16 pt-5"
           style={{ scrollMarginTop: "60px" }}
         >
-          {/* Green card */}
-          <div className="rounded-[22px] border border-[#064E3B]/25 bg-[#ECFDF5] p-6">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#064E3B]/15">
-              <CheckCircle2 size={20} className="text-[#064E3B]" />
-            </div>
-            <h2 className="text-[1.3rem] font-black leading-tight text-[#064E3B]">
-              Din pension ser fornuftig ud
+          {/* Status card */}
+          <div className="rounded-[22px] border border-[#E8E4DD] bg-white p-6 shadow-[0_4px_20px_rgba(27,46,75,0.07)]">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#0EA5E9]">
+              Dit resultat
+            </p>
+            <h2 className="text-[1.3rem] font-black leading-tight text-[#1B2E4B]">
+              Vi kan desværre ikke hjælpe dig
             </h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-[#064E3B]/70">
-              Ud fra dine svar har du ikke umiddelbart en stor opsparing, og du samler den ét sted via din
-              arbejdsgiver. Det er der ofte ikke noget at gøre ved lige nu — men her er nogle ting, du selv kan holde
-              øje med.
+            <p className="mt-3 text-[13px] leading-relaxed text-[#64748B]">
+              Fordi din pension udelukkende er via din arbejdsgiver, er den bundet til din overenskomst eller
+              ansættelsesaftale — det er ikke muligt for en privat rådgiver at flytte eller optimere den.
+            </p>
+            <div className="my-4 border-t border-[#E8E4DD]" />
+            <p className="text-[13px] leading-relaxed text-[#64748B]">
+              Men det betyder ikke at du ikke kan handle på din pension selv. Her er 5 ting du bør tjekke:
             </p>
           </div>
 
           {/* Checklist */}
           <div className="rounded-[22px] border border-[#E8E4DD] bg-white p-5 shadow-[0_4px_20px_rgba(27,46,75,0.07)]">
-            <div className="mb-4 flex items-center gap-2">
-              <ListChecks size={16} className="text-[#0EA5E9]" />
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#0EA5E9]">Din tjekliste</p>
-            </div>
-            <div className="space-y-3.5">
+            <div className="space-y-4">
               {CHECKLIST_ITEMS.map((item, i) => (
-                <div key={item} className="flex gap-3">
+                <div key={item.title} className="flex gap-3">
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] bg-[#F0F9FF] text-[11px] font-black text-[#0EA5E9]">
                     {i + 1}
                   </div>
-                  <p className="text-[13px] leading-relaxed text-[#1B2E4B]">{item}</p>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#1B2E4B]">{item.title}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[#64748B]">{item.desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
