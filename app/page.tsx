@@ -98,11 +98,11 @@ const CHECKLIST_ITEMS = [
 ]
 
 function isQualified(answers: Record<number, number>) {
-  // Selvstændig kvalificerer altid
-  if (answers[1] === 1) return true
-  const under100k = answers[3] === 0
+  // Kun "tjekliste" hvis man har arbejdsgiverpension OG ikke har opsparing derudover —
+  // ellers (selvstændig, ikke sikker, eller opsparing ud over arbejdsgiverpensionen) er man kvalificeret
+  const harArbejdsgiverpension = answers[1] === 0
   const kunArbejdsgiverpension = answers[2] === 3
-  if (under100k && kunArbejdsgiverpension) return false
+  if (harArbejdsgiverpension && kunArbejdsgiverpension) return false
   return true
 }
 
