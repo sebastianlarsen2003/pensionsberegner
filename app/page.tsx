@@ -11,7 +11,6 @@ import {
   Calendar,
   Search,
   Users,
-  Download,
 } from "lucide-react"
 
 declare global {
@@ -597,16 +596,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={() => track("Download Checklist Click")}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] border border-[#E8E4DD] bg-[#F8F6F2] py-3.5 text-[13px] font-bold text-[#1B2E4B] transition hover:bg-[#F0F9FF] active:scale-[0.98]"
-              style={{ minHeight: "50px" }}
-            >
-              <Download size={14} />
-              Download tjekliste som PDF
-            </button>
           </div>
 
           {/* Note */}
