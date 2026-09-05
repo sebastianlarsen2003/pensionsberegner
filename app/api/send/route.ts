@@ -105,7 +105,7 @@ function checklistEmailHtml(name: string) {
               RådgiverXperten
             </p>
             <h1 style="margin:12px 0 0;font-size:28px;line-height:1.15;color:#ffffff;">
-              Vi kan desværre ikke hjælpe dig
+              Der er ikke noget akut at hente hos en rådgiver
             </h1>
             <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#D8E2F0;">
               Hej ${name || ""}. Fordi din pension udelukkende er via din arbejdsgiver, er den bundet til din
@@ -121,7 +121,18 @@ function checklistEmailHtml(name: string) {
             </p>
             ${items}
 
-            <p style="margin:24px 0 0;font-size:11px;line-height:1.7;color:#8D95A6;">
+            <div style="padding:22px;border-radius:20px;background:#EAF7FD;border:1px solid rgba(79,183,231,0.30);margin:24px 0;">
+              <h3 style="margin:0 0 10px;font-size:16px;color:#253457;">Sidder du med spørgsmål?</h3>
+              <p style="margin:0 0 14px;font-size:13px;line-height:1.7;color:#5F687A;">
+                Måske fangede vores spørgsmål ikke hele din situation. Book et kort opkald med Sebastian, og skriv
+                med det samme hvad du har brug for hjælp til.
+              </p>
+              <a href="${CALENDLY_URL}" style="display:inline-block;background:#253457;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:700;">
+                Book en samtale
+              </a>
+            </div>
+
+            <p style="margin:0;font-size:11px;line-height:1.7;color:#8D95A6;">
               RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
             </p>
 

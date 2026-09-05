@@ -569,7 +569,7 @@ export default function Home() {
               Dit resultat
             </p>
             <h2 className="text-[1.3rem] font-black leading-tight text-[#1B2E4B]">
-              Vi kan desværre ikke hjælpe dig
+              Der er ikke noget akut at hente hos en rådgiver
             </h2>
             <p className="mt-3 text-[13px] leading-relaxed text-[#64748B]">
               Fordi din pension udelukkende er via din arbejdsgiver, er den bundet til din overenskomst eller
@@ -596,6 +596,37 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Book anyway */}
+          <div className="rounded-[22px] bg-[#1B2E4B] p-6 shadow-[0_8px_32px_rgba(27,46,75,0.2)]">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#0EA5E9]">
+              Sidder du med spørgsmål?
+            </p>
+            <h2 className="text-[1.15rem] font-black leading-tight text-white">
+              Book en samtale alligevel
+            </h2>
+            <p className="mt-3 text-[13px] leading-relaxed text-white/60">
+              Måske fangede vores spørgsmål ikke hele din situation, eller du er i tvivl om noget konkret. Book et
+              kort opkald med Sebastian, og skriv med det samme hvad du har brug for hjælp til.
+            </p>
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                track("Book Meeting Click")
+                window.fbq?.("trackCustom", "BookMeetingClick")
+              }}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[#0EA5E9] font-bold text-[#1B2E4B] transition hover:bg-[#0284C7] active:scale-[0.98]"
+              style={{ minHeight: "54px", fontSize: "15px" }}
+            >
+              <Calendar size={15} />
+              Book en samtale
+            </a>
+            <p className="mt-3 text-center text-[11px] text-white/30">
+              Gratis og uforpligtende
+            </p>
           </div>
 
           {/* Note */}
