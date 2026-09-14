@@ -271,20 +271,6 @@ export default function Home() {
           <p className="mt-3 text-[13px] leading-relaxed text-white/60">
             Svar på 6 korte spørgsmål — vi vurderer om vi kan matche dig med en kvalificeret rådgiver.
           </p>
-          <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
-            {/* Sebastian photo */}
-            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white/20">
-              <img
-                src="/Seb1.jpg"
-                alt="Sebastian"
-                className="h-full w-full object-cover object-[center_20%]"
-              />
-            </div>
-            <div>
-              <p className="text-[13px] font-bold text-white">Sebastian</p>
-              <p className="text-[11px] text-white/50">Klient- og Partneransvarlig</p>
-            </div>
-          </div>
         </div>
       </section>
 
