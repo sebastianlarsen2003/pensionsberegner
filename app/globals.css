@@ -42,16 +42,18 @@ body {
   color: #253457;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 }
 
 input[type="number"]::-webkit-outer-spin-button,

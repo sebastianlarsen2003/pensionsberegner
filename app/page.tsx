@@ -186,20 +186,10 @@ function isQualified(answers: Answers) {
   return scoreOf(answers) >= MIN_SCORE
 }
 
-// Logo i én farve (maske), så det kan bruges på både blå og navy baggrund
-function Logo({ color }: { color?: string }) {
-  if (!color) {
-    return <img src="/logo.svg" alt="RådgiverXperten" className="h-auto w-[150px]" />
-  }
-  const mask = "url(/logo.svg) no-repeat left center / contain"
-  return (
-    <span
-      role="img"
-      aria-label="RådgiverXperten"
-      className="block w-[150px]"
-      style={{ aspectRatio: "1457.22 / 249.82", backgroundColor: color, WebkitMask: mask, mask }}
-    />
-  )
+// Logo: original i farver, eller en-farvet (navy/hvid) til blå og navy baggrunde
+function Logo({ color }: { color?: "navy" | "white" }) {
+  const src = color ? `/logo-${color}.svg` : "/logo.svg"
+  return <img src={src} alt="RådgiverXperten" className="h-auto w-[150px]" />
 }
 
 // 16px+ font prevents iOS auto-zoom
@@ -382,7 +372,7 @@ export default function Home() {
         {!started && !submitted && (
           <div className={`flex flex-1 flex-col bg-[#4fb7e7] px-[22px] pt-4 ${safeBottom}`}>
             <div className="flex min-h-[44px] items-center">
-              <Logo color="#253457" />
+              <Logo color="navy" />
             </div>
             <div className="flex flex-1 flex-col justify-center py-10">
               <h1 className="m-0 text-[clamp(42px,12.5vw,58px)] font-extrabold leading-[0.98] tracking-[-0.035em] [text-wrap:balance]">
@@ -447,7 +437,7 @@ export default function Home() {
                   ? "Vil du have et gratis pensionstjek?"
                   : isContact
                     ? qualified
-                      ? "Hvor kan vi ringe dig op?"
+                      ? "Hvor kan vi ringe?"
                       : "Skal vi ringe dig op alligevel?"
                     : STEPS[step].question}
               </h2>
@@ -525,7 +515,7 @@ export default function Home() {
             )}
 
             {isOffer && (
-              <div className={`sticky bottom-0 flex flex-col gap-2.5 bg-white px-4 pt-3 ${safeBottom}`}>
+              <div className={`sticky bottom-0 flex flex-col gap-2.5 bg-white px-4 pt-3 shadow-[0_-14px_14px_-2px_#fff] ${safeBottom}`}>
                 <button type="button" onClick={() => handleIntent("Ja")} className={`${primaryBtn} offer-btn bg-[#253457] text-white`}>
                   <span>Ja, ring mig op</span>
                   <span className="text-[22px]">→</span>
@@ -620,7 +610,7 @@ export default function Home() {
                   </span>
                 </label>
 
-                <div className={`sticky bottom-0 -mx-4 bg-white px-4 pt-3 ${safeBottom}`}>
+                <div className={`sticky bottom-0 -mx-4 bg-white px-4 pt-3 shadow-[0_-14px_14px_-2px_#fff] ${safeBottom}`}>
                   <button
                     type="submit"
                     disabled={!canSubmit || isSubmitting}
@@ -641,7 +631,7 @@ export default function Home() {
         {submitted && qualified && (
           <div className={`flex flex-1 flex-col bg-[#253457] px-[22px] pt-4 text-white ${safeBottom}`}>
             <div className="flex min-h-[44px] items-center">
-              <Logo color="#ffffff" />
+              <Logo color="white" />
             </div>
             <div className="flex flex-1 flex-col justify-center py-8">
               <h1 className="m-0 text-[clamp(38px,10.5vw,50px)] font-extrabold leading-[1] tracking-[-0.035em] [text-wrap:balance]">
