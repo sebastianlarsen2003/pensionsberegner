@@ -12,10 +12,10 @@ declare global {
 const CALENDLY_URL = "https://calendly.com/sebastian-raadgiverxperten/10min"
 const ZAPIER_URL = "https://hooks.zapier.com/hooks/catch/27569406/4yf4lpr/"
 
-type Option = { label: string; points: number }
+type Option = { label: string; points: number; stop?: boolean }
 type Step = { key: string; question: string; help?: string; multi?: boolean; options: Option[] }
 
-// Man er et match, hvis pointsummen når mindst så mange point (maks. 23)
+// Man er et match, hvis pointsummen når mindst så mange point (maks. 20), og ingen svar er en afvisning (stop)
 const MIN_SCORE = 12
 
 const STEPS: Step[] = [
@@ -45,9 +45,10 @@ const STEPS: Step[] = [
     question: "Hvad tjener du om året før skat?",
     help: "Din egen indkomst, ikke husstandens.",
     options: [
-      { label: "Under 400.000 kr.", points: 0 },
-      { label: "400.000 – 600.000 kr.", points: 1 },
-      { label: "600.000 – 900.000 kr.", points: 2 },
+      { label: "Ingen indkomst", points: 0, stop: true },
+      { label: "Under 400.000 kr.", points: 3 },
+      { label: "400.000 – 600.000 kr.", points: 3 },
+      { label: "600.000 – 900.000 kr.", points: 3 },
       { label: "Over 900.000 kr.", points: 3 },
     ],
   },
@@ -56,9 +57,10 @@ const STEPS: Step[] = [
     question: "Hvor meget har du sparet op til pension i alt?",
     help: "Kig evt. på pensionsinfo.dk. Et skøn er fint.",
     options: [
-      { label: "Under 500.000 kr.", points: 0 },
-      { label: "500.000 – 1,5 mio. kr.", points: 1 },
-      { label: "1,5 – 4 mio. kr.", points: 2 },
+      { label: "Ingen opsparing", points: 0, stop: true },
+      { label: "Under 500.000 kr.", points: 3 },
+      { label: "500.000 – 1,5 mio. kr.", points: 3 },
+      { label: "1,5 – 4 mio. kr.", points: 3 },
       { label: "Over 4 mio. kr.", points: 3 },
       { label: "Ved ikke", points: 0 },
     ],
@@ -68,8 +70,8 @@ const STEPS: Step[] = [
     question: "Hvor mange pensionsordninger har du?",
     help: "Tæl også dem fra gamle job med.",
     options: [
-      { label: "Én", points: 0 },
-      { label: "To eller tre", points: 2 },
+      { label: "Én", points: 3 },
+      { label: "To eller tre", points: 3 },
       { label: "Fire eller flere", points: 3 },
       { label: "Ved ikke", points: 1 },
     ],
@@ -84,16 +86,6 @@ const STEPS: Step[] = [
       { label: "Betaler jeg for meget i gebyrer?", points: 2 },
       { label: "Kan jeg samle mine ordninger?", points: 2 },
       { label: "Er min familie sikret?", points: 2 },
-    ],
-  },
-  {
-    key: "tidspunkt",
-    question: "Hvornår vil du gerne have styr på det?",
-    options: [
-      { label: "Hurtigst muligt", points: 3 },
-      { label: "Inden for 3 måneder", points: 2 },
-      { label: "Inden for et år", points: 0 },
-      { label: "Jeg er bare nysgerrig", points: 0 },
     ],
   },
   {
@@ -183,7 +175,8 @@ function scoreOf(answers: Answers) {
 }
 
 function isQualified(answers: Answers) {
-  return scoreOf(answers) >= MIN_SCORE
+  const afvist = STEPS.some((step, i) => (answers[i] ?? []).some((idx) => step.options[idx].stop))
+  return !afvist && scoreOf(answers) >= MIN_SCORE
 }
 
 // Logo: original i farver, eller en-farvet (navy/hvid) til blå og navy baggrunde
