@@ -38,17 +38,17 @@ function qualifiedEmailHtml(name: string) {
               RådgiverXperten
             </p>
             <h1 style="margin:12px 0 0;font-size:28px;line-height:1.15;color:#ffffff;">
-              Vi matcher dig med den rigtige rådgiver
+              Vi ringer dig op og booker din tid
             </h1>
             <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#D8E2F0;">
-              Hej ${name || ""}. Tak for dine svar. Ud fra dem kan der være noget at hente ved at få et
-              professionelt tjek af din pension.
+              Hej ${name || ""}. Tak for dine svar. Vi ringer dig op og booker en tid til dit pensionstjek
+              hos en rådgiver. Du behøver ikke gøre mere.
             </p>
           </div>
 
           <div style="padding:28px 24px;">
 
-            <h2 style="margin:0 0 14px;font-size:20px;color:#253457;">Hvad sker der til mødet?</h2>
+            <h2 style="margin:0 0 14px;font-size:20px;color:#253457;">Hvad sker der nu?</h2>
 
             <div style="margin-bottom:10px;padding:16px;border-radius:16px;background:#FBFCFD;border:1px solid rgba(37,52,87,0.08);">
               <p style="margin:0;font-size:14px;font-weight:700;color:#253457;">🔍 Dialog omkring din pension</p>
@@ -108,9 +108,8 @@ function checklistEmailHtml(name: string) {
               Der er ikke noget akut at hente hos en rådgiver
             </h1>
             <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#D8E2F0;">
-              Hej ${name || ""}. Fordi din pension udelukkende er via din arbejdsgiver, er den bundet til din
-              overenskomst eller ansættelsesaftale — det er ikke muligt for en privat rådgiver at flytte eller
-              optimere den.
+              Hej ${name || ""}. Ud fra dine svar tror vi ikke, at personlig rådgivning giver dig nok værdi lige nu.
+              Vi vil hellere være ærlige end tage din tid.
             </p>
           </div>
 
@@ -155,7 +154,7 @@ export async function POST(req: Request) {
 
     const html = qualified ? qualifiedEmailHtml(name) : checklistEmailHtml(name)
     const subject = qualified
-      ? "Vi matcher dig med den rigtige rådgiver"
+      ? "Vi ringer dig op og booker din tid"
       : "Din tjekliste til pension"
 
     const response = await resend.emails.send({

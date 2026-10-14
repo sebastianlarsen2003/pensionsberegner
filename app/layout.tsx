@@ -1,5 +1,5 @@
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono, Figtree } from "next/font/google"
 import Script from "next/script"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
@@ -15,6 +15,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700", "800"],
+})
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#4fb7e7",
+}
+
 export const metadata: Metadata = {
   title: "Pensionsberegner | RådgiverXperten",
   description:
@@ -29,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="da">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${figtree.variable} antialiased`}
       >
         <Script id="meta-pixel" strategy="afterInteractive">
   {`
