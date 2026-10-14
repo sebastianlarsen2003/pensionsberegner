@@ -110,9 +110,9 @@ const STEPS: Step[] = [
 type Answers = Record<number, number[]>
 
 const CALL_STEPS = [
-  "Vi ringer dig op på det nummer, du giver os",
-  "Vi booker en tid hos en rådgiver, der passer til din situation",
-  "Du får et gratis og uforpligtende pensionstjek",
+  "Vi ringer dig op",
+  "Vi booker en tid hos en rådgiver",
+  "Du får et gratis pensionstjek",
 ]
 
 type OutVariant = "lowscore" | "no" | "maybe"
@@ -374,6 +374,7 @@ export default function Home() {
         *, *::before, *::after { box-sizing: border-box; }
         input, button, a { -webkit-tap-highlight-color: transparent; }
         @media (max-height: 640px) { .short-hide { display: none; } }
+        @media (max-height: 700px) { .offer-hide { display: none; } .offer-btn { min-height: 54px !important; height: 54px !important; } }
       `}</style>
 
       <div className="mx-auto flex min-h-[100dvh] max-w-[480px] flex-col shadow-[0_0_40px_rgba(37,52,87,0.08)]">
@@ -463,7 +464,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ol>
-                  <p className="mt-5 text-[14px] leading-[1.45] text-[#5d6780]">
+                  <p className="offer-hide mt-5 text-[14px] leading-[1.45] text-[#5d6780]">
                     Vi ringer kun til dem, der svarer ja — så vi har tid til at give dem en ordentlig samtale.
                   </p>
                 </>
@@ -524,8 +525,8 @@ export default function Home() {
             )}
 
             {isOffer && (
-              <div className={`flex flex-col gap-2.5 px-4 ${safeBottom}`}>
-                <button type="button" onClick={() => handleIntent("Ja")} className={`${primaryBtn} bg-[#253457] text-white`}>
+              <div className={`sticky bottom-0 flex flex-col gap-2.5 bg-white px-4 pt-3 ${safeBottom}`}>
+                <button type="button" onClick={() => handleIntent("Ja")} className={`${primaryBtn} offer-btn bg-[#253457] text-white`}>
                   <span>Ja, ring mig op</span>
                   <span className="text-[22px]">→</span>
                 </button>
@@ -534,7 +535,7 @@ export default function Home() {
                     key={choice}
                     type="button"
                     onClick={() => handleIntent(choice)}
-                    className="flex min-h-[62px] items-center rounded-[18px] bg-[#f0f2f6] px-[22px] py-3 text-left text-[18px] font-semibold transition-colors active:bg-[#253457] active:text-white"
+                    className="offer-btn flex min-h-[62px] items-center rounded-[18px] bg-[#f0f2f6] px-[22px] py-3 text-left text-[18px] font-semibold transition-colors active:bg-[#253457] active:text-white"
                   >
                     {choice === "Ved ikke" ? "Ved ikke endnu" : "Nej tak"}
                   </button>
@@ -549,7 +550,7 @@ export default function Home() {
                   e.preventDefault()
                   handleSubmit()
                 }}
-                className={`flex flex-col gap-2.5 px-4 ${safeBottom}`}
+                className="flex flex-col gap-2.5 px-4"
               >
                 <input
                   value={name}
@@ -611,7 +612,7 @@ export default function Home() {
                       href="https://raadgiverxperten.dk/privacy-policy/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ textDecoration: "underline", textUnderlineOffset: "2px" }}
+                      style={{ textDecoration: "underline", textUnderlineOffset: "2px", display: "inline-block", padding: "13px 0", margin: "-13px 0" }}
                     >
                       privatlivspolitik her
                     </a>
@@ -619,16 +620,18 @@ export default function Home() {
                   </span>
                 </label>
 
-                <button
-                  type="submit"
-                  disabled={!canSubmit || isSubmitting}
-                  className={`${primaryBtn} mt-1.5 text-white ${
-                    canSubmit && !isSubmitting ? "bg-[#253457]" : "cursor-not-allowed bg-[#c3c8d3]"
-                  }`}
-                >
-                  <span>{isSubmitting ? "Sender..." : "Ring mig op"}</span>
-                  <span className="text-[22px]">→</span>
-                </button>
+                <div className={`sticky bottom-0 -mx-4 bg-white px-4 pt-3 ${safeBottom}`}>
+                  <button
+                    type="submit"
+                    disabled={!canSubmit || isSubmitting}
+                    className={`${primaryBtn} text-white ${
+                      canSubmit && !isSubmitting ? "bg-[#253457]" : "cursor-not-allowed bg-[#c3c8d3]"
+                    }`}
+                  >
+                    <span>{isSubmitting ? "Sender..." : "Ring mig op"}</span>
+                    <span className="text-[22px]">→</span>
+                  </button>
+                </div>
               </form>
             )}
           </div>
@@ -675,7 +678,7 @@ export default function Home() {
                 <span className="text-[22px]">→</span>
               </a>
               <p className="text-center text-[14px] text-[#b9c0cd]">Vil du hellere vælge tidspunktet selv?</p>
-              <p className="mt-2 text-center text-[12px] leading-[1.45] text-[#8d95a6]">
+              <p className="mt-2 text-center text-[13px] leading-[1.45] text-[#8d95a6]">
                 RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
               </p>
             </div>
@@ -764,7 +767,7 @@ export default function Home() {
               <p className="mt-2 text-center text-[13px] leading-[1.45] text-[#5d6780]">
                 Skifter du job eller får en fripolice? Gem os — så finder vi den rigtige rådgiver til dig.
               </p>
-              <p className="text-center text-[12px] leading-[1.45] text-[#8d95a6]">
+              <p className="text-center text-[13px] leading-[1.45] text-[#8d95a6]">
                 RådgiverXperten er et uafhængigt formidlingsled og yder ikke selv finansiel rådgivning.
               </p>
             </div>
