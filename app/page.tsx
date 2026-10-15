@@ -189,6 +189,8 @@ function Logo({ color }: { color?: "navy" | "white" }) {
 const inputClass =
   "h-[62px] w-full rounded-[18px] border-2 border-transparent bg-[#f0f2f6] px-[22px] text-[18px] font-medium text-[#253457] outline-none transition focus:border-[#4fb7e7] placeholder:text-[#8d95a6]"
 
+const errorClass = "m-0 px-1.5 text-[14px] font-semibold text-[#b3261e]"
+
 const primaryBtn =
   "flex h-16 w-full items-center justify-between rounded-full px-6 text-[18px] font-bold transition active:scale-[0.99]"
 
@@ -211,16 +213,17 @@ export default function Home() {
   const [consent, setConsent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [startedTracked, setStartedTracked] = useState(false)
+  const [tried, setTried] = useState(false)
 
   const isQuestion = step < STEPS.length
   const isOffer = step === STEPS.length
   const isContact = step === STEPS.length + 1
 
-  const canSubmit =
-    name.trim() !== "" &&
-    phone.trim() !== "" &&
-    consent &&
-    (!wantsEmail || (email.trim() !== "" && email.includes("@")))
+  const phoneClean = phone.replace(/[\s-]/g, "")
+  const vName = name.trim().length >= 2 && /\p{L}/u.test(name)
+  const vPhone = /^(\+45|0045)?\d{8}$/.test(phoneClean)
+  const vEmail = !wantsEmail || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())
+  const canSubmit = vName && vPhone && vEmail && consent
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -301,7 +304,11 @@ export default function Home() {
   }
 
   async function handleSubmit() {
-    if (!canSubmit || isSubmitting) return
+    if (isSubmitting) return
+    if (!canSubmit) {
+      setTried(true)
+      return
+    }
     setIsSubmitting(true)
     const result = qualified
 
@@ -310,9 +317,9 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          phone,
-          email: wantsEmail ? email : undefined,
+          name: name.trim(),
+          phone: phoneClean,
+          email: wantsEmail ? email.trim() : undefined,
           answers,
           qualified: result,
         }),
@@ -322,9 +329,9 @@ export default function Home() {
         mode: "no-cors",
         body: JSON.stringify({
           date: new Date().toISOString(),
-          name,
-          phone,
-          email: wantsEmail ? email : "",
+          name: name.trim(),
+          phone: phoneClean,
+          email: wantsEmail ? email.trim() : "",
           ...Object.fromEntries(STEPS.map((st, i) => [st.key, labelFor(i)])),
           leadscore: scoreOf(answers),
           kvalificeret: result ? "Ja" : "Nej",
@@ -541,8 +548,10 @@ export default function Home() {
                   placeholder="Dit navn"
                   autoComplete="name"
                   aria-label="Navn"
-                  className={inputClass}
+                  aria-invalid={tried && !vName}
+                  className={`${inputClass} ${tried && !vName ? "!border-[#b3261e]" : ""}`}
                 />
+                {tried && !vName && <p className={errorClass}>Skriv dit navn.</p>}
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -551,8 +560,10 @@ export default function Home() {
                   inputMode="tel"
                   autoComplete="tel"
                   aria-label="Telefon"
-                  className={inputClass}
+                  aria-invalid={tried && !vPhone}
+                  className={`${inputClass} ${tried && !vPhone ? "!border-[#b3261e]" : ""}`}
                 />
+                {tried && !vPhone && <p className={errorClass}>Telefonnummeret skal være 8 cifre.</p>}
 
                 <div className="rounded-[18px] bg-[#f0f2f6]">
                   <label className="flex min-h-[62px] cursor-pointer items-center gap-3 px-[22px] py-3">
@@ -574,8 +585,10 @@ export default function Home() {
                         inputMode="email"
                         autoComplete="email"
                         aria-label="E-mail"
-                        className={`${inputClass} bg-white`}
+                        aria-invalid={tried && !vEmail}
+                        className={`${inputClass} bg-white ${tried && !vEmail ? "!border-[#b3261e]" : ""}`}
                       />
+                      {tried && !vEmail && <p className={`${errorClass} pt-2`}>Tjek din e-mailadresse.</p>}
                     </div>
                   )}
                 </div>
@@ -602,14 +615,13 @@ export default function Home() {
                     .
                   </span>
                 </label>
+                {tried && !consent && <p className={errorClass}>Du skal acceptere, for at vi må ringe dig op.</p>}
 
                 <div className={`sticky bottom-0 -mx-4 bg-white px-4 pt-3 shadow-[0_-14px_14px_-2px_#fff] ${safeBottom}`}>
                   <button
                     type="submit"
-                    disabled={!canSubmit || isSubmitting}
-                    className={`${primaryBtn} text-white ${
-                      canSubmit && !isSubmitting ? "bg-[#253457]" : "cursor-not-allowed bg-[#c3c8d3]"
-                    }`}
+                    disabled={isSubmitting}
+                    className={`${primaryBtn} text-white ${isSubmitting ? "cursor-not-allowed bg-[#c3c8d3]" : "bg-[#253457]"}`}
                   >
                     <span>{isSubmitting ? "Sender..." : "Ring mig op"}</span>
                     <span className="text-[22px]">→</span>
