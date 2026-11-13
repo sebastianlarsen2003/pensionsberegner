@@ -602,7 +602,7 @@ export default function Home() {
                   />
                   <span className="text-[13px] leading-[1.45] text-[#5d6780]">
                     Jeg accepterer, at RådgiverXperten eller deres relevante samarbejdspartner må kontakte mig via telefon
-                    {wantsEmail ? " og mail" : ""} vedrørende min pensionsvurdering. Samtykket kan tilbagekaldes til
+                    {wantsEmail ? " og mail" : ""} vedrørende mine svar. Samtykket kan tilbagekaldes til
                     enhver tid. Læs vores{" "}
                     <a
                       href="https://raadgiverxperten.dk/privacy-policy/"
