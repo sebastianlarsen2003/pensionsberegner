@@ -2,6 +2,7 @@
 
 import { track } from "@vercel/analytics"
 import { useEffect, useRef, useState } from "react"
+import { openCookieSettings } from "./components/CookieConsent"
 
 declare global {
   interface Window {
@@ -398,6 +399,13 @@ export default function Home() {
                 <span>·</span>
                 <span>Ca. 2 minutter</span>
               </div>
+              <button
+                type="button"
+                onClick={openCookieSettings}
+                className="mx-auto min-h-[44px] px-3 text-[13px] font-semibold underline underline-offset-2 opacity-80"
+              >
+                Cookie-indstillinger
+              </button>
             </div>
           </div>
         )}
