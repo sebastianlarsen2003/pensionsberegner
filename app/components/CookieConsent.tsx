@@ -42,6 +42,7 @@ export default function CookieConsent() {
   const [ready, setReady] = useState(false)
   const [consent, setConsent] = useState<Consent | null>(null)
   const [open, setOpen] = useState(false)
+  const [details, setDetails] = useState(false)
 
   useEffect(() => {
     const saved = readConsent()
@@ -92,19 +93,48 @@ export default function CookieConsent() {
           aria-label="Cookies"
           className="fixed inset-x-0 bottom-0 z-[100] mx-auto max-w-[480px] px-3 pb-[max(12px,env(safe-area-inset-bottom))]"
         >
-          <div className="rounded-[18px] bg-white p-5 text-[#253457] shadow-[0_8px_40px_rgba(37,52,87,0.28)] ring-1 ring-[#253457]/10">
+          <div className="max-h-[85dvh] overflow-y-auto rounded-[18px] bg-white p-5 text-[#253457] shadow-[0_8px_40px_rgba(37,52,87,0.28)] ring-1 ring-[#253457]/10">
             <p className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">Cookies</p>
             <p className="mb-0 mt-2 text-[15px] leading-[1.45]">
-              Vi bruger marketingcookies (Meta Pixel) til at måle, hvilke annoncer der virker. Det kræver dit samtykke. Siden virker lige godt, hvis du siger nej.{" "}
-              <a
-                href={PRIVACY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold underline underline-offset-2"
-              >
-                Læs mere
-              </a>
+              Vi bruger marketingcookies fra Meta (Facebook og Instagram) til at måle, hvilke af vores annoncer der virker. Det kræver dit samtykke. Siden virker lige godt, hvis du siger nej.
             </p>
+            <button
+              type="button"
+              onClick={() => setDetails((d) => !d)}
+              aria-expanded={details}
+              className="mt-1 min-h-[44px] text-[15px] font-bold underline underline-offset-2"
+            >
+              {details ? "Skjul detaljer" : "Vis detaljer"}
+            </button>
+            {details && (
+              <ul className="m-0 mb-1 list-none space-y-2 p-0 text-[14px] leading-[1.45]">
+                <li>
+                  <b>Hvem:</b> Meta Platforms Ireland Ltd. får data fra din browser, når du bruger siden.
+                </li>
+                <li>
+                  <b>Hvad:</b> Sidevisninger, at du starter tjekket, at du booker eller sender en henvendelse, samt din IP-adresse og browseroplysninger. Dine svar og kontaktoplysninger sendes ikke til Meta.
+                </li>
+                <li>
+                  <b>Hvorfor:</b> At måle og forbedre vores annoncer og vise dem til relevante personer.
+                </li>
+                <li>
+                  <b>Hvor længe:</b> Cookien (_fbp) gemmes i op til 90 dage.
+                </li>
+                <li>
+                  <b>Tilbagekald:</b> Du kan til enhver tid ændre dit valg via "Cookie-indstillinger" nederst på forsiden.
+                </li>
+                <li>
+                  <a
+                    href={PRIVACY_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold underline underline-offset-2"
+                  >
+                    Læs vores privatlivspolitik
+                  </a>
+                </li>
+              </ul>
+            )}
             <div className="mt-4 flex gap-2.5">
               <button
                 type="button"
